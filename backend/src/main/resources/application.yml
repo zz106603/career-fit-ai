@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: career-fit-ai
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
