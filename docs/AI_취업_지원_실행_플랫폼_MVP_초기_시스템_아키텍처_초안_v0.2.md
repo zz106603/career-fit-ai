@@ -569,6 +569,8 @@ flowchart LR
 ### ADR-002 PostgreSQL + pgvector
 
 - **결정:** 업무 데이터와 경력 Vector를 PostgreSQL에 함께 저장한다.
+- **Migration:** Flyway의 버전 SQL을 애플리케이션 기동 시 적용하고, 첫 migration에서 `CREATE EXTENSION IF NOT EXISTS vector`로 pgvector를 활성화한다. 관리되지 않은 기존 스키마는 버전 0으로 baseline하여 동일한 초기 migration부터 추적한다.
+- **개발 환경:** PostgreSQL 17과 pgvector를 Docker Compose로 기동하고, 데이터는 명명된 Volume에 보존한다. 통합 테스트는 동일 계열 pgvector 이미지를 Testcontainers로 실행한다.
 - **이유:** 단일 운영 기반, 사용자 필터와 관계 데이터 결합, MVP 검색 규모에 충분
 - **대안:** 별도 Vector DB, 전문 검색엔진
 - **선택하지 않은 이유:** 운영 요소와 동기화 복잡성이 증가하며 현재 규모·기능에서 이점이 검증되지 않음
