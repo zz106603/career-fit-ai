@@ -152,3 +152,10 @@ replay_pid*
 build/
 
 .env
+.env.*
+!.env.example
+
+# Local Spring configuration containing secrets
+application-*.local.yml
+application-*.local.yaml
+application-*.local.properties

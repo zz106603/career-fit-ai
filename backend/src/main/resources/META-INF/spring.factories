@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.careerfit.common.configuration.RequiredEnvironmentVariablesValidator
