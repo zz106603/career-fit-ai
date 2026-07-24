@@ -20,7 +20,7 @@ class EnvironmentConfigurationTest {
     @Test
     @DisplayName("local 프로필은 DB 비밀번호 환경변수를 필수로 요구한다")
     void local_프로필은_DB_비밀번호_환경변수를_필수로_요구한다() throws IOException {
-        PropertySource<?> local = 설정을_불러온다("application-local.yml");
+        PropertySource<?> local = loadPropertySource("application-local.yml");
         MutablePropertySources sources = new MutablePropertySources();
         sources.addLast(local);
         PropertySourcesPropertyResolver resolver = new PropertySourcesPropertyResolver(sources);
@@ -36,8 +36,8 @@ class EnvironmentConfigurationTest {
     @Test
     @DisplayName("local과 test 프로필은 서로 다른 설정 파일을 사용한다")
     void local과_test_프로필은_서로_다른_설정_파일을_사용한다() throws IOException {
-        PropertySource<?> local = 설정을_불러온다("application-local.yml");
-        PropertySource<?> test = 설정을_불러온다("application-test.yml");
+        PropertySource<?> local = loadPropertySource("application-local.yml");
+        PropertySource<?> test = loadPropertySource("application-test.yml");
 
         assertThat(local.getProperty("spring.datasource.url"))
                 .isEqualTo("${DB_URL:jdbc:postgresql://localhost:5432/career_fit}");
@@ -46,7 +46,7 @@ class EnvironmentConfigurationTest {
         assertThat(test.getProperty("spring.flyway.baseline-version")).isEqualTo(0);
     }
 
-    private PropertySource<?> 설정을_불러온다(String resourceName) throws IOException {
+    private PropertySource<?> loadPropertySource(String resourceName) throws IOException {
         return loader.load(resourceName, new ClassPathResource(resourceName)).getFirst();
     }
 }
