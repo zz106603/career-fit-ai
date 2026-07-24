@@ -2,6 +2,8 @@
 
 AI 취업 지원 실행 플랫폼의 Java 21·Spring Boot 기반 모듈형 모놀리스입니다.
 
+[![Backend CI](https://github.com/zz106603/career-fit-ai/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/zz106603/career-fit-ai/actions/workflows/backend-ci.yml)
+
 ## 요구 환경
 
 - Java 21
@@ -74,6 +76,17 @@ export DB_PASSWORD='<.env에 설정한 값>'
 Set-Location backend
 .\gradlew.bat clean test
 ```
+
+PR CI와 동일한 전체 build는 다음 명령으로 재현합니다.
+
+```powershell
+Set-Location backend
+.\gradlew.bat clean build --no-daemon --stacktrace
+```
+
+`main` 대상 Pull Request에는 Java 21 기반 `Backend CI`가 실행되며 단위 테스트,
+모듈 의존성 검사, PostgreSQL·pgvector 통합 테스트를 함께 검증합니다. 자세한 내용은
+[`CONTRIBUTING.md`](CONTRIBUTING.md)를 참고합니다.
 
 ## 모듈 경계
 
