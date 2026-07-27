@@ -106,6 +106,33 @@ public class JdbcJobPostingAnalysisRepository implements JobPostingAnalysisRepos
                 .optional();
     }
 
+    @Override
+    public Optional<JobPostingAnalysis> findReadyByRequirement(
+            UserId userId, JobRequirementId requirementId) {
+        return jdbcClient
+                .sql("""
+                        SELECT analysis.job_posting_analysis_id, analysis.job_posting_id,
+                               analysis.user_id, analysis.status, analysis.company_name,
+                               analysis.job_title, analysis.workflow_version,
+                               analysis.created_at, analysis.ready_at,
+                               requirement.requirement_id, requirement.category,
+                               requirement.requirement_text, requirement.source_excerpt,
+                               requirement.sequence_no
+                        FROM job_posting_analysis analysis
+                        JOIN job_requirement requirement
+                          ON requirement.job_posting_analysis_id =
+                             analysis.job_posting_analysis_id
+                         AND requirement.user_id = analysis.user_id
+                        WHERE requirement.requirement_id = :requirementId
+                          AND analysis.user_id = :userId
+                          AND analysis.status = 'READY'
+                        """)
+                .param("requirementId", requirementId.value())
+                .param("userId", userId.value())
+                .query(this::map)
+                .optional();
+    }
+
     private JobPostingAnalysis map(ResultSet resultSet, int rowNumber) throws SQLException {
         JobPostingAnalysisId analysisId = new JobPostingAnalysisId(
                 resultSet.getObject("job_posting_analysis_id", UUID.class));
