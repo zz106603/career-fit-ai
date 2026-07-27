@@ -130,6 +130,32 @@ public class JdbcCareerExperienceRepository implements CareerExperienceRepositor
     }
 
     @Override
+    public Optional<CareerExperienceVersion> findCurrentConfirmedVersion(
+            UserId userId, CareerExperienceVersionId versionId) {
+        return jdbcClient
+                .sql(VERSION_COLUMNS
+                        + """
+                         WHERE experience_version_id = :versionId
+                           AND user_id = :userId
+                           AND confirmed_at IS NOT NULL
+                           AND superseded_at IS NULL
+                           AND deleted_at IS NULL
+                           AND EXISTS (
+                               SELECT 1
+                               FROM career_experience experience
+                               WHERE experience.experience_id =
+                                     career_experience_version.experience_id
+                                 AND experience.user_id = :userId
+                                 AND experience.deleted_at IS NULL
+                           )
+                        """)
+                .param("versionId", versionId.value())
+                .param("userId", userId.value())
+                .query(this::mapVersion)
+                .optional();
+    }
+
+    @Override
     public int nextVersionNumber(UserId userId, CareerExperienceId experienceId) {
         return jdbcClient
                 .sql("""
