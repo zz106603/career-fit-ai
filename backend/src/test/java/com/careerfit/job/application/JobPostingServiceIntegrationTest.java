@@ -41,7 +41,7 @@ class JobPostingServiceIntegrationTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void 데이터베이스를_초기화한다() {
-        jdbcClient.sql("TRUNCATE job_posting").update();
+        jdbcClient.sql("TRUNCATE job_posting CASCADE").update();
     }
 
     @Test
