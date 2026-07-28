@@ -5,3 +5,10 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+
+career-fit:
+  async:
+    dispatcher:
+      enabled: false
+      fixed-delay: 5s
+      batch-size: 10
