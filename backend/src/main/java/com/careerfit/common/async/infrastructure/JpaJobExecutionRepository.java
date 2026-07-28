@@ -8,6 +8,7 @@ import com.careerfit.common.async.domain.JobType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -48,6 +49,16 @@ public class JpaJobExecutionRepository implements JobExecutionRepository {
         return repository
                 .findByIdAndUserId(executionId.value(), userId)
                 .map(this::toDomain);
+    }
+
+    @Override
+    public List<JobExecution> findQueued(int batchSize) {
+        return repository
+                .findByStatusOrderByCreatedAtAscIdAsc(
+                        JobExecutionStatus.QUEUED, PageRequest.of(0, batchSize))
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override

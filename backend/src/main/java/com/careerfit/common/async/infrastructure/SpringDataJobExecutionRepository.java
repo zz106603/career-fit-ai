@@ -4,8 +4,10 @@ import com.careerfit.common.async.domain.JobExecutionStatus;
 import com.careerfit.common.async.domain.JobType;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +22,9 @@ interface SpringDataJobExecutionRepository
             UUID userId,
             String duplicateKey,
             Collection<JobExecutionStatus> statuses);
+
+    List<JobExecutionEntity> findByStatusOrderByCreatedAtAscIdAsc(
+            JobExecutionStatus status, Pageable pageable);
 
     @Modifying(flushAutomatically = true)
     @Query(

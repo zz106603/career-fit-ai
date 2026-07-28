@@ -7,6 +7,8 @@ import com.careerfit.common.async.domain.JobExecutionStatus;
 import com.careerfit.common.async.domain.JobType;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +44,15 @@ public class JobExecutionService {
     }
 
     @Transactional
+    public Optional<JobExecution> claim(JobExecution queuedExecution) {
+        JobExecution processing = queuedExecution.start(now());
+        if (!repository.update(processing, JobExecutionStatus.QUEUED)) {
+            return Optional.empty();
+        }
+        return Optional.of(processing);
+    }
+
+    @Transactional
     public JobExecution succeed(UUID userId, JobExecutionId executionId) {
         JobExecution current = find(userId, executionId);
         JobExecution succeeded = current.succeed(now());
@@ -60,6 +71,14 @@ public class JobExecutionService {
         return repository
                 .findById(userId, executionId)
                 .orElseThrow(() -> new JobExecutionNotFoundException(executionId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<JobExecution> findQueued(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("Dispatcher batch 크기는 1 이상이어야 합니다.");
+        }
+        return repository.findQueued(batchSize);
     }
 
     private JobExecution update(JobExecutionStatus expectedStatus, JobExecution target) {
