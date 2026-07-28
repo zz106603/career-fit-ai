@@ -107,6 +107,16 @@ ArchUnit 테스트가 다음 원칙을 검증합니다.
 - `career`, `job`, `company`는 조정 계층인 `analysis`, `application`에 의존하지 않습니다.
 - `ai`와 `common`은 업무 모듈을 소유하거나 의존하지 않습니다.
 
+## 영속성 전략
+
+일반 Aggregate 저장·조회는 Spring Data JPA를 사용하며 도메인 모델과 JPA Entity를
+분리합니다. 스키마와 데이터 제약은 Flyway가 관리하고 Hibernate는 시작 시 검증만
+수행합니다.
+
+pgvector 저장·유사도 검색처럼 PostgreSQL 전용 SQL이 핵심인 경로는 `JdbcClient`를
+제한적으로 사용합니다. 상세한 선택 근거와 적용 경계는
+[`ADR-001`](docs/ADR-001_JPA_중심_영속성_전략.md)을 참고합니다.
+
 ## 실행 프로필
 
 - `local`: 로컬 개발
