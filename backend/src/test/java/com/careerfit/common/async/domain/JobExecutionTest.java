@@ -45,6 +45,30 @@ class JobExecutionTest {
     }
 
     @Test
+    @DisplayName("정체된 PROCESSING 작업은 재시도 횟수를 늘려 QUEUED로 복귀한다")
+    void 정체된_처리_중_작업은_재시도_횟수를_늘려_대기로_복귀한다() {
+        JobExecution processing = queued().start(CLAIMED_AT);
+
+        JobExecution requeued = processing.requeueStale();
+
+        assertThat(requeued.status()).isEqualTo(JobExecutionStatus.QUEUED);
+        assertThat(requeued.retryCount()).isEqualTo(1);
+        assertThat(requeued.claimedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("재시도 상한에 도달한 PROCESSING 작업은 최종 실패할 수 있다")
+    void 재시도_상한에_도달한_처리_중_작업은_최종_실패할_수_있다() {
+        JobExecution processing = queued().start(CLAIMED_AT);
+
+        JobExecution failed =
+                processing.failStale("STALE_RETRY_EXHAUSTED", COMPLETED_AT);
+
+        assertThat(failed.status()).isEqualTo(JobExecutionStatus.FAILED);
+        assertThat(failed.failureCode()).isEqualTo("STALE_RETRY_EXHAUSTED");
+    }
+
+    @Test
     @DisplayName("QUEUED에서 SUCCEEDED로 직접 전환할 수 없다")
     void 대기에서_성공으로_직접_전환할_수_없다() {
         assertThatThrownBy(() -> queued().succeed(COMPLETED_AT))

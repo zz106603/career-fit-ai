@@ -6,6 +6,7 @@ import com.careerfit.common.async.domain.JobExecutionStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 public interface JobExecutionRepository {
 
@@ -14,6 +15,8 @@ public interface JobExecutionRepository {
     Optional<JobExecution> findById(UUID userId, JobExecutionId executionId);
 
     List<JobExecution> findQueued(int batchSize);
+
+    List<JobExecution> findStaleProcessing(Instant claimedBefore, int batchSize);
 
     boolean update(JobExecution execution, JobExecutionStatus expectedStatus);
 }
