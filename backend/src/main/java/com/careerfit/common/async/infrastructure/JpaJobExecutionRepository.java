@@ -8,6 +8,7 @@ import com.careerfit.common.async.domain.JobType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
@@ -62,12 +63,25 @@ public class JpaJobExecutionRepository implements JobExecutionRepository {
     }
 
     @Override
+    public List<JobExecution> findStaleProcessing(Instant claimedBefore, int batchSize) {
+        return repository
+                .findByStatusAndClaimedAtLessThanEqualOrderByClaimedAtAscIdAsc(
+                        JobExecutionStatus.PROCESSING,
+                        claimedBefore,
+                        PageRequest.of(0, batchSize))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public boolean update(JobExecution execution, JobExecutionStatus expectedStatus) {
         return repository.updateStatus(
                         execution.id().value(),
                         execution.userId(),
                         expectedStatus,
                         execution.status(),
+                        execution.retryCount(),
                         execution.failureCode(),
                         execution.claimedAt(),
                         execution.completedAt())
@@ -83,6 +97,7 @@ public class JpaJobExecutionRepository implements JobExecutionRepository {
                 entity.inputVersion(),
                 entity.duplicateKey(),
                 entity.status(),
+                entity.retryCount(),
                 entity.failureCode(),
                 entity.createdAt(),
                 entity.claimedAt(),

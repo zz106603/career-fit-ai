@@ -12,3 +12,9 @@ career-fit:
       enabled: false
       fixed-delay: 5s
       batch-size: 10
+    recovery:
+      enabled: false
+      fixed-delay: 1m
+      stale-threshold: 10m
+      max-retries: 3
+      batch-size: 10

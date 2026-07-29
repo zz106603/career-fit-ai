@@ -26,6 +26,9 @@ interface SpringDataJobExecutionRepository
     List<JobExecutionEntity> findByStatusOrderByCreatedAtAscIdAsc(
             JobExecutionStatus status, Pageable pageable);
 
+    List<JobExecutionEntity> findByStatusAndClaimedAtLessThanEqualOrderByClaimedAtAscIdAsc(
+            JobExecutionStatus status, Instant claimedAt, Pageable pageable);
+
     @Modifying(flushAutomatically = true)
     @Query(
             value = """
@@ -55,6 +58,7 @@ interface SpringDataJobExecutionRepository
             update JobExecutionEntity execution
                set execution.status = :status,
                    execution.failureCode = :failureCode,
+                   execution.retryCount = :retryCount,
                    execution.claimedAt = :claimedAt,
                    execution.completedAt = :completedAt
              where execution.id = :executionId
@@ -66,6 +70,7 @@ interface SpringDataJobExecutionRepository
             @Param("userId") UUID userId,
             @Param("expectedStatus") JobExecutionStatus expectedStatus,
             @Param("status") JobExecutionStatus status,
+            @Param("retryCount") int retryCount,
             @Param("failureCode") String failureCode,
             @Param("claimedAt") Instant claimedAt,
             @Param("completedAt") Instant completedAt);

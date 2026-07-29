@@ -39,6 +39,9 @@ class JobExecutionEntity {
     @Column(name = "status", nullable = false, length = 20)
     private JobExecutionStatus status;
 
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount;
+
     @Column(name = "failure_code", length = 200)
     private String failureCode;
 
@@ -79,6 +82,10 @@ class JobExecutionEntity {
 
     JobExecutionStatus status() {
         return status;
+    }
+
+    int retryCount() {
+        return retryCount;
     }
 
     String failureCode() {

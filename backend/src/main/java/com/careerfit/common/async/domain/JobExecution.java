@@ -12,6 +12,7 @@ public record JobExecution(
         String inputVersion,
         String duplicateKey,
         JobExecutionStatus status,
+        int retryCount,
         String failureCode,
         Instant createdAt,
         Instant claimedAt,
@@ -25,6 +26,9 @@ public record JobExecution(
         inputVersion = requireText(inputVersion, "입력 버전");
         duplicateKey = requireText(duplicateKey, "중복 키");
         Objects.requireNonNull(status, "작업 상태는 필수입니다.");
+        if (retryCount < 0) {
+            throw new IllegalArgumentException("재시도 횟수는 0 이상이어야 합니다.");
+        }
         failureCode = normalize(failureCode);
         Objects.requireNonNull(createdAt, "생성 시각은 필수입니다.");
         validateState(status, failureCode, createdAt, claimedAt, completedAt);
@@ -45,6 +49,7 @@ public record JobExecution(
                 inputVersion,
                 duplicateKey,
                 JobExecutionStatus.QUEUED,
+                0,
                 null,
                 createdAt,
                 null,
@@ -70,8 +75,32 @@ public record JobExecution(
                 completedAt);
     }
 
+    public JobExecution requeueStale() {
+        requireStatus(JobExecutionStatus.PROCESSING, JobExecutionStatus.QUEUED);
+        return copy(JobExecutionStatus.QUEUED, retryCount + 1, null, null, null);
+    }
+
+    public JobExecution failStale(String failureCode, Instant completedAt) {
+        requireStatus(JobExecutionStatus.PROCESSING, JobExecutionStatus.FAILED);
+        return copy(
+                JobExecutionStatus.FAILED,
+                retryCount,
+                requireText(failureCode, "실패 코드"),
+                claimedAt,
+                completedAt);
+    }
+
     private JobExecution copy(
             JobExecutionStatus newStatus,
+            String newFailureCode,
+            Instant newClaimedAt,
+            Instant newCompletedAt) {
+        return copy(newStatus, retryCount, newFailureCode, newClaimedAt, newCompletedAt);
+    }
+
+    private JobExecution copy(
+            JobExecutionStatus newStatus,
+            int newRetryCount,
             String newFailureCode,
             Instant newClaimedAt,
             Instant newCompletedAt) {
@@ -83,6 +112,7 @@ public record JobExecution(
                 inputVersion,
                 duplicateKey,
                 newStatus,
+                newRetryCount,
                 newFailureCode,
                 createdAt,
                 newClaimedAt,
