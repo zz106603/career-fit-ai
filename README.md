@@ -126,21 +126,25 @@ pgvector 저장·유사도 검색처럼 PostgreSQL 전용 SQL이 핵심인 경�
 운영 환경은 배포 시 외부 설정으로 주입하며 운영 Secret 관리 제품은 현재 범위에
 포함하지 않습니다.
 
-## 개발용 사용자 컨텍스트
+## 사용자 인증
 
-M0에서는 회원가입·로그인 구현 전에도 사용자별 데이터 격리를 검증할 수 있도록
-`local`, `test` 프로필에서 고정 개발 사용자를 제공합니다. 보호 API 요청에는
-다음 헤더 중 하나를 전달합니다.
+자체 이메일·비밀번호 계정과 Spring Security 서버 세션을 사용합니다. 상태 변경
+요청 전에 `GET /api/auth/csrf`로 토큰을 받고, 회원가입·로그인·로그아웃 요청에
+`X-XSRF-TOKEN` 헤더와 쿠키를 함께 전달해야 합니다.
 
-```text
-X-Development-User: user-a
-X-Development-User: user-b
-```
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
 
-헤더가 없거나 등록되지 않은 값이면 요청은 `401 Unauthorized`로 거절됩니다.
-업무 서비스는 이 헤더를 직접 사용하지 않고 `CurrentUserProvider`에서 확인된
-`userId`를 받아야 합니다. 이 헤더는 개발·테스트 전용이며 실제 인증 기능으로
-사용하지 않습니다.
+세션 ID는 `HttpOnly`, `SameSite=Lax` 쿠키로 전달합니다. HTTPS 환경에서는
+`SESSION_COOKIE_SECURE=true`를 설정해야 합니다. 업무 서비스는 클라이언트가 보낸
+사용자 ID를 신뢰하지 않고 `SecurityContext`에서 확인된 사용자 ID를
+`CurrentUserProvider`로 전달받습니다. 자세한 정책은
+[`인증 세션 운영 가이드`](docs/인증_세션_운영_가이드_v0.1.md)를 참고합니다.
+
+기존 고정 개발 사용자 필터는 테스트 fixture 호환을 위해 남아 있지만
+`development-user` 프로필을 명시적으로 활성화한 경우에만 사용할 수 있습니다.
 
 ## 민감 로그 정책
 
