@@ -18,3 +18,11 @@ career-fit:
       stale-threshold: 10m
       max-retries: 3
       batch-size: 10
+
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax

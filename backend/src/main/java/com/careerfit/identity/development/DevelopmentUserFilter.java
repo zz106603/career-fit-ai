@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** local/test 프로필의 요청을 고정 개발 사용자 컨텍스트로 변환한다. */
 @Component
-@Profile({"local", "test"})
+@Profile("development-user")
 public final class DevelopmentUserFilter extends OncePerRequestFilter {
 
     public static final String USER_HEADER = "X-Development-User";
