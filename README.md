@@ -146,6 +146,29 @@ pgvector 저장·유사도 검색처럼 PostgreSQL 전용 SQL이 핵심인 경�
 기존 고정 개발 사용자 필터는 테스트 fixture 호환을 위해 남아 있지만
 `development-user` 프로필을 명시적으로 활성화한 경우에만 사용할 수 있습니다.
 
+## 경력 PDF 저장
+
+경력 PDF 원본은 PostgreSQL BLOB이 아니라 `FileStoragePort`를 통해 파일 저장소에
+저장합니다. 개발 환경의 기본 저장 루트는 프로세스 작업 디렉터리 기준
+`./data/files`입니다. 예를 들어 `backend`에서 실행하면 `backend/data/files`가
+되므로 명시적인 환경변수 설정을 권장합니다.
+
+```text
+FILE_STORAGE_ROOT=C:/career-fit-ai-data/files
+```
+
+Docker Compose에서는 이 경로에 파일 저장용 Volume을 연결합니다. DB에는 문서 ID,
+사용자 ID, 서버 생성 저장 키, 크기, SHA-256 체크섬, 페이지 수와 업로드 시각만
+저장합니다. 사용자가 보낸 파일명은 표시용이며 실제 저장 경로로 사용하지 않습니다.
+
+- `POST /api/career-documents`: PDF 업로드(최대 10 MiB·50페이지)
+- `GET /api/career-documents/{documentId}`: 소유 문서 메타데이터 조회
+- `GET /api/career-documents/{documentId}/content`: 소유 PDF 원본 다운로드
+
+업로드는 인증과 CSRF 토큰이 필요합니다. 로컬 저장 루트의 원본 파일은 Git 추적
+대상이 아니며, 외부 사용자 운영 전에는 Volume 백업 또는 Object Storage Adapter를
+별도로 검토해야 합니다.
+
 ## 민감 로그 정책
 
 - 비밀번호, 토큰, Authorization, API 키와 secret 값은 콘솔 출력 전에 `***`로 마스킹합니다.
