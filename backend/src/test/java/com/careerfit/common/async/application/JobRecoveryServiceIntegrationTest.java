@@ -1,6 +1,7 @@
 package com.careerfit.common.async.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.careerfit.PostgresIntegrationTest;
 import com.careerfit.common.async.domain.JobExecution;
@@ -123,6 +124,43 @@ class JobRecoveryServiceIntegrationTest extends PostgresIntegrationTest {
         assertThat(rerun.retryCount()).isZero();
         assertThat(executionService.find(failed.userId(), failed.id()).status())
                 .isEqualTo(JobExecutionStatus.FAILED);
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 작업은 조회할 수 없다")
+    void 다른_사용자의_작업은_조회할_수_없다() {
+        UUID userA = UUID.randomUUID();
+        UUID userB = UUID.randomUUID();
+        JobExecution userAExecution = executionService.create(
+                userA,
+                JobType.CAREER_DOCUMENT_EXTRACTION,
+                UUID.randomUUID(),
+                "input-v1",
+                "ownership:user-a");
+
+        assertThatThrownBy(() -> executionService.find(userB, userAExecution.id()))
+                .isInstanceOf(JobExecutionNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("다른 사용자의 실패 작업은 재실행할 수 없다")
+    void 다른_사용자의_실패_작업은_재실행할_수_없다() {
+        UUID userA = UUID.randomUUID();
+        UUID userB = UUID.randomUUID();
+        JobExecution queued = executionService.create(
+                userA,
+                JobType.CAREER_DOCUMENT_EXTRACTION,
+                UUID.randomUUID(),
+                "input-v1",
+                "ownership:rerun");
+        executionService.start(queued.userId(), queued.id());
+        JobExecution failed = executionService.fail(queued.userId(), queued.id(), "FAILED");
+
+        assertThatThrownBy(() -> recoveryService.rerunFailed(userB, failed.id()))
+                .isInstanceOf(JobExecutionNotFoundException.class);
+
+        assertThat(executionService.find(userA, failed.id()).status())
+                .isEqualTo(failed.status());
     }
 
     private JobExecution createProcessing(String duplicateKey) {
