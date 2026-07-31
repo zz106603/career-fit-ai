@@ -33,7 +33,7 @@ class DatabaseMigrationIntegrationTest extends PostgresIntegrationTest {
         MigrateResult firstMigration = flyway.migrate();
         MigrateResult secondMigration = flyway.migrate();
 
-        assertThat(firstMigration.migrationsExecuted).isEqualTo(10);
+        assertThat(firstMigration.migrationsExecuted).isEqualTo(11);
         assertThat(secondMigration.migrationsExecuted).isZero();
         assertVectorTypeCanBeUsed();
     }
@@ -46,7 +46,7 @@ class DatabaseMigrationIntegrationTest extends PostgresIntegrationTest {
 
         MigrateResult migration = flyway(schema).migrate();
 
-        assertThat(migration.migrationsExecuted).isEqualTo(10);
+        assertThat(migration.migrationsExecuted).isEqualTo(11);
         assertThat(tableExists(schema, "legacy_marker")).isTrue();
         assertVectorTypeCanBeUsed();
     }
