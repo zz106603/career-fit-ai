@@ -70,8 +70,8 @@ public class JpaJobPostingAnalysisRepository implements JobPostingAnalysisReposi
             UserId userId, JobRequirementId requirementId) {
         return requirementRepository
                 .findByIdAndUserId(requirementId.value(), userId.value())
-                .flatMap(requirement -> analysisRepository.findById(requirement.analysisId())
-                        .filter(analysis -> analysis.userId().equals(userId.value()))
+                .flatMap(requirement -> analysisRepository
+                        .findByIdAndUserId(requirement.analysisId(), userId.value())
                         .filter(analysis -> analysis.status() == JobPostingAnalysisStatus.READY)
                         .map(analysis -> toDomain(analysis, requirement)));
     }

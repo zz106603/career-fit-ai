@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface SpringDataJobPostingAnalysisRepository
         extends JpaRepository<JobPostingAnalysisEntity, UUID> {
 
+    Optional<JobPostingAnalysisEntity> findByIdAndUserId(UUID id, UUID userId);
+
     Optional<JobPostingAnalysisEntity>
             findFirstByUserIdAndJobPostingIdAndStatusOrderByReadyAtDescIdDesc(
                     UUID userId,
