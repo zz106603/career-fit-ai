@@ -1,12 +1,19 @@
 spring:
   application:
     name: career-fit-ai
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: validate
 
 career-fit:
+  storage:
+    local:
+      root: ${FILE_STORAGE_ROOT:./data/files}
   async:
     dispatcher:
       enabled: false
