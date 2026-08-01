@@ -1,6 +1,7 @@
 package com.careerfit.career.document.web;
 
 import com.careerfit.career.document.application.CareerDocumentContent;
+import com.careerfit.career.document.application.CareerDocumentExtractionService;
 import com.careerfit.career.document.application.CareerDocumentService;
 import com.careerfit.career.document.application.CareerDocumentUpload;
 import com.careerfit.career.document.application.InvalidPdfException;
@@ -27,9 +28,19 @@ import org.springframework.web.multipart.MultipartFile;
 public class CareerDocumentController {
 
     private final CareerDocumentService service;
+    private final CareerDocumentExtractionService extractionService;
 
-    public CareerDocumentController(CareerDocumentService service) {
+    public CareerDocumentController(
+            CareerDocumentService service, CareerDocumentExtractionService extractionService) {
         this.service = service;
+        this.extractionService = extractionService;
+    }
+
+    @PostMapping("/{documentId}/extractions")
+    public ResponseEntity<CareerDocumentExtractionResponse> extract(
+            @PathVariable UUID documentId) {
+        return ResponseEntity.accepted().body(CareerDocumentExtractionResponse.from(
+                extractionService.request(new CareerDocumentId(documentId))));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
