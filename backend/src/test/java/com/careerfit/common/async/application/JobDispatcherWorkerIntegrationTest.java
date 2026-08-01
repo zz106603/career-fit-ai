@@ -50,7 +50,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void 데이터베이스와_Handler를_초기화한다() {
-        jdbcClient.sql("TRUNCATE job_execution").update();
+        jdbcClient.sql("TRUNCATE job_execution CASCADE").update();
         successHandler.reset();
     }
 
@@ -58,9 +58,9 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
     @DisplayName("Dispatcher는 설정된 batch 크기만 조회해 작업 유형 Handler를 실행한다")
     void Dispatcher는_설정된_batch_크기만_조회해_작업_유형_Handler를_실행한다() {
         UUID userId = UUID.randomUUID();
-        create(userId, JobType.CAREER_DOCUMENT_EXTRACTION, "batch-1");
-        create(userId, JobType.CAREER_DOCUMENT_EXTRACTION, "batch-2");
-        create(userId, JobType.CAREER_DOCUMENT_EXTRACTION, "batch-3");
+        create(userId, JobType.CAREER_INDEXING, "batch-1");
+        create(userId, JobType.CAREER_INDEXING, "batch-2");
+        create(userId, JobType.CAREER_INDEXING, "batch-3");
 
         int executed = dispatcher.dispatchBatch();
 
@@ -75,7 +75,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
     void 두_Worker가_동시에_선점해도_Handler는_한_번만_실행된다()
             throws Exception {
         JobExecution queued = create(
-                UUID.randomUUID(), JobType.CAREER_DOCUMENT_EXTRACTION, "claim-once");
+                UUID.randomUUID(), JobType.CAREER_INDEXING, "claim-once");
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
 
@@ -151,7 +151,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
 
         @Override
         public JobType type() {
-            return JobType.CAREER_DOCUMENT_EXTRACTION;
+            return JobType.CAREER_INDEXING;
         }
 
         @Override
