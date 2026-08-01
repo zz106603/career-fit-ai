@@ -10,4 +10,6 @@ public interface CareerDocumentRepository {
     void save(CareerDocument document);
 
     Optional<CareerDocument> findActive(UserId userId, CareerDocumentId documentId);
+
+    Optional<CareerDocument> findActiveForUpdate(UserId userId, CareerDocumentId documentId);
 }

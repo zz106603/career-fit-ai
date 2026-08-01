@@ -42,6 +42,15 @@ public class JpaCareerDocumentRepository implements CareerDocumentRepository {
                 .map(this::toDomain);
     }
 
+    @Override
+    @Transactional
+    public Optional<CareerDocument> findActiveForUpdate(
+            UserId userId, CareerDocumentId documentId) {
+        return repository
+                .findLockedByIdAndUserIdAndDeletedAtIsNull(documentId.value(), userId.value())
+                .map(this::toDomain);
+    }
+
     private CareerDocument toDomain(CareerDocumentEntity entity) {
         return new CareerDocument(
                 new CareerDocumentId(entity.id()),
