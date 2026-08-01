@@ -5,11 +5,16 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.careerfit.PostgresIntegrationTest;
+import com.careerfit.common.async.application.JobExecutionService;
+import com.careerfit.common.async.application.JobWorker;
+import com.careerfit.common.async.domain.JobExecution;
+import com.careerfit.common.async.domain.JobExecutionStatus;
 import com.careerfit.identity.CurrentUser;
 import com.careerfit.identity.development.DevelopmentUsers;
 import com.careerfit.identity.security.AuthenticatedUserPrincipal;
@@ -19,6 +24,9 @@ import java.nio.file.Path;
 import java.util.UUID;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +58,12 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private JdbcClient jdbcClient;
 
+    @Autowired
+    private JobExecutionService jobExecutionService;
+
+    @Autowired
+    private JobWorker jobWorker;
+
     @DynamicPropertySource
     static void storageProperties(DynamicPropertyRegistry registry) {
         registry.add("career-fit.storage.local.root", STORAGE_ROOT::toString);
@@ -57,7 +71,7 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void 문서_데이터와_파일을_초기화한다() throws Exception {
-        jdbcClient.sql("TRUNCATE career_document").update();
+        jdbcClient.sql("TRUNCATE job_execution, career_document CASCADE").update();
         if (Files.exists(STORAGE_ROOT)) {
             try (var paths = Files.walk(STORAGE_ROOT)) {
                 paths.sorted(java.util.Comparator.reverseOrder())
@@ -163,6 +177,72 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
                 .isZero();
     }
 
+    @Test
+    @DisplayName("추출 요청을 중복 방지하고 작업 실행 후 페이지 텍스트를 저장한다")
+    void 추출_요청을_실행해_페이지_텍스트를_저장한다() throws Exception {
+        UUID documentId = uploadPdf(pdf("first", null, "third"), DevelopmentUsers.USER_A);
+
+        MvcResult first = requestExtraction(documentId, DevelopmentUsers.USER_A)
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("QUEUED"))
+                .andReturn();
+        MvcResult duplicate = requestExtraction(documentId, DevelopmentUsers.USER_A)
+                .andExpect(status().isAccepted())
+                .andReturn();
+        UUID analysisId = UUID.fromString(com.jayway.jsonpath.JsonPath.read(
+                first.getResponse().getContentAsString(), "$.analysisId"));
+        assertThat(com.jayway.jsonpath.JsonPath.<String>read(
+                duplicate.getResponse().getContentAsString(), "$.analysisId"))
+                .isEqualTo(analysisId.toString());
+
+        JobExecution queued = jobExecutionService.findQueued(10).getFirst();
+        assertThat(jobWorker.execute(queued)).isTrue();
+
+        JobExecution completed = jobExecutionService.find(queued.userId(), queued.id());
+        assertThat(completed.status()).isEqualTo(JobExecutionStatus.SUCCEEDED);
+        assertThat(jdbcClient.sql("SELECT page_text FROM career_document_page "
+                        + "WHERE document_analysis_id = :id ORDER BY page_number")
+                .param("id", analysisId).query(String.class).list())
+                .hasSize(3)
+                .satisfies(texts -> {
+                    assertThat(texts.get(0)).contains("first");
+                    assertThat(texts.get(1)).isEmpty();
+                    assertThat(texts.get(2)).contains("third");
+                });
+        assertThat(jdbcClient.sql("SELECT status FROM career_document_analysis "
+                        + "WHERE document_analysis_id = :id")
+                .param("id", analysisId).query(String.class).single())
+                .isEqualTo("PROCESSING");
+    }
+
+    @Test
+    @DisplayName("다른 사용자는 문서 텍스트 추출을 요청할 수 없다")
+    void 다른_사용자는_텍스트_추출을_요청할_수_없다() throws Exception {
+        UUID documentId = uploadPdf(pdf("owner"), DevelopmentUsers.USER_A);
+
+        requestExtraction(documentId, DevelopmentUsers.USER_B)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CAREER_DOCUMENT_NOT_FOUND"));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions requestExtraction(
+            UUID documentId, CurrentUser user) throws Exception {
+        return mockMvc.perform(post("/api/career-documents/{id}/extractions", documentId)
+                .with(authentication(authenticationOf(user)))
+                .with(csrf()));
+    }
+
+    private UUID uploadPdf(byte[] content, CurrentUser user) throws Exception {
+        MvcResult result = mockMvc.perform(multipart("/api/career-documents")
+                        .file(new MockMultipartFile("file", "resume.pdf", "application/pdf", content))
+                        .with(authentication(authenticationOf(user)))
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return UUID.fromString(com.jayway.jsonpath.JsonPath.read(
+                result.getResponse().getContentAsString(), "$.documentId"));
+    }
+
     private static UsernamePasswordAuthenticationToken authenticationOf(CurrentUser user) {
         AuthenticatedUserPrincipal principal = new AuthenticatedUserPrincipal(
                 user.userId(), "owner@example.com", "{noop}unused", true);
@@ -171,9 +251,25 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
     }
 
     private static byte[] pdf() throws Exception {
+        return pdf((String) null);
+    }
+
+    private static byte[] pdf(String... texts) throws Exception {
         try (PDDocument document = new PDDocument();
                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            document.addPage(new PDPage());
+            for (String text : texts) {
+                PDPage page = new PDPage();
+                document.addPage(page);
+                if (text != null) {
+                    try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                        stream.beginText();
+                        stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                        stream.newLineAtOffset(50, 700);
+                        stream.showText(text);
+                        stream.endText();
+                    }
+                }
+            }
             document.save(output);
             return output.toByteArray();
         }
