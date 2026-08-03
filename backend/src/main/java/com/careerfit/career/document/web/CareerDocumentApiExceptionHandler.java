@@ -1,6 +1,7 @@
 package com.careerfit.career.document.web;
 
 import com.careerfit.career.document.application.CareerDocumentNotFoundException;
+import com.careerfit.career.document.application.AlternativeTextException;
 import com.careerfit.career.document.application.InvalidPdfException;
 import com.careerfit.career.document.infrastructure.FileStorageException;
 import com.careerfit.common.web.ApiErrorResponse;
@@ -26,6 +27,18 @@ public class CareerDocumentApiExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleNotFound(
             CareerDocumentNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, "CAREER_DOCUMENT_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(AlternativeTextException.class)
+    public ResponseEntity<ApiErrorResponse> handleAlternativeText(
+            AlternativeTextException exception) {
+        HttpStatus status = switch (exception.failure()) {
+            case NOT_ALLOWED -> HttpStatus.CONFLICT;
+            case SAVE_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR;
+            case EMPTY, TOO_LONG -> HttpStatus.BAD_REQUEST;
+        };
+        return response(
+                status, "ALTERNATIVE_TEXT_" + exception.failure().name(), exception.getMessage());
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

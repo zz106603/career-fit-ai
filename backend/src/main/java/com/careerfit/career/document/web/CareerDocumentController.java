@@ -1,6 +1,8 @@
 package com.careerfit.career.document.web;
 
 import com.careerfit.career.document.application.CareerDocumentContent;
+import com.careerfit.career.document.application.CareerDocumentAlternativeTextResult;
+import com.careerfit.career.document.application.CareerDocumentAlternativeTextService;
 import com.careerfit.career.document.application.CareerDocumentExtractionService;
 import com.careerfit.career.document.application.CareerDocumentService;
 import com.careerfit.career.document.application.CareerDocumentUpload;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,11 +32,25 @@ public class CareerDocumentController {
 
     private final CareerDocumentService service;
     private final CareerDocumentExtractionService extractionService;
+    private final CareerDocumentAlternativeTextService alternativeTextService;
 
     public CareerDocumentController(
-            CareerDocumentService service, CareerDocumentExtractionService extractionService) {
+            CareerDocumentService service,
+            CareerDocumentExtractionService extractionService,
+            CareerDocumentAlternativeTextService alternativeTextService) {
         this.service = service;
         this.extractionService = extractionService;
+        this.alternativeTextService = alternativeTextService;
+    }
+
+    @PostMapping("/{documentId}/alternative-texts")
+    public ResponseEntity<CareerDocumentAlternativeTextResponse> createAlternativeText(
+            @PathVariable UUID documentId,
+            @RequestBody CareerDocumentAlternativeTextRequest request) {
+        CareerDocumentAlternativeTextResult result = alternativeTextService.create(
+                new CareerDocumentId(documentId), request.text());
+        return ResponseEntity.status(result.created() ? 201 : 200)
+                .body(CareerDocumentAlternativeTextResponse.from(result));
     }
 
     @PostMapping("/{documentId}/extractions")
