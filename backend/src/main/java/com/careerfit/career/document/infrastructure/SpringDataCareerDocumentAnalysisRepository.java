@@ -1,6 +1,7 @@
 package com.careerfit.career.document.infrastructure;
 
 import com.careerfit.career.document.domain.CareerDocumentAnalysisStatus;
+import com.careerfit.career.document.domain.CareerDocumentInputKind;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,4 +12,6 @@ interface SpringDataCareerDocumentAnalysisRepository extends JpaRepository<Caree
     Optional<CareerDocumentAnalysisEntity> findFirstByUserIdAndDocumentIdAndInputVersionAndStatusIn(
             UUID userId, UUID documentId, String inputVersion,
             Collection<CareerDocumentAnalysisStatus> statuses);
+    Optional<CareerDocumentAnalysisEntity> findFirstByUserIdAndDocumentIdAndInputKindOrderByCreatedAtDesc(
+            UUID userId, UUID documentId, CareerDocumentInputKind inputKind);
 }

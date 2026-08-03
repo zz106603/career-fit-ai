@@ -24,8 +24,12 @@ public record CareerDocumentAnalysis(
         Objects.requireNonNull(id, "문서 분석 ID는 필수입니다.");
         Objects.requireNonNull(documentId, "경력 문서 ID는 필수입니다.");
         Objects.requireNonNull(userId, "사용자 ID는 필수입니다.");
-        Objects.requireNonNull(jobExecutionId, "작업 실행 ID는 필수입니다.");
         Objects.requireNonNull(inputKind, "입력 종류는 필수입니다.");
+        if (inputKind == CareerDocumentInputKind.PDF_TEXT) {
+            Objects.requireNonNull(jobExecutionId, "PDF 분석 작업 실행 ID는 필수입니다.");
+        } else if (jobExecutionId != null) {
+            throw new IllegalArgumentException("대체 텍스트 분석은 PDF 추출 작업을 가질 수 없습니다.");
+        }
         Objects.requireNonNull(status, "문서 분석 상태는 필수입니다.");
         inputVersion = requireText(inputVersion, "입력 버전");
         workflowVersion = requireText(workflowVersion, "Workflow 버전");
@@ -47,6 +51,20 @@ public record CareerDocumentAnalysis(
                 id, documentId, userId, jobExecutionId, CareerDocumentInputKind.PDF_TEXT,
                 CareerDocumentAnalysisStatus.QUEUED, inputVersion, workflowVersion,
                 null, null, createdAt, null, null);
+    }
+
+    public static CareerDocumentAnalysis pastedText(
+            CareerDocumentAnalysisId id,
+            CareerDocumentId documentId,
+            UserId userId,
+            String inputVersion,
+            String workflowVersion,
+            String textReference,
+            Instant createdAt) {
+        return new CareerDocumentAnalysis(
+                id, documentId, userId, null, CareerDocumentInputKind.PASTED_TEXT,
+                CareerDocumentAnalysisStatus.PROCESSING, inputVersion, workflowVersion,
+                textReference, null, createdAt, createdAt, null);
     }
 
     public CareerDocumentAnalysis start(Instant startedAt) {
