@@ -6,5 +6,6 @@ public enum ProviderErrorType {
     RATE_LIMIT,
     PROVIDER_ERROR,
     INVALID_RESPONSE,
+    CONFIGURATION_ERROR,
     POLICY_REJECTION
 }
