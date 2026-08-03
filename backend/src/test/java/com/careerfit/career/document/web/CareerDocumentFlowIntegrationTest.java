@@ -225,11 +225,99 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.code").value("CAREER_DOCUMENT_NOT_FOUND"));
     }
 
+    @Test
+    @DisplayName("텍스트 추출 실패 문서에 대체 텍스트 Snapshot과 새 분석을 생성한다")
+    void 추출_실패_문서에_대체_텍스트를_저장한다() throws Exception {
+        UUID documentId = uploadPdf(pdf(), DevelopmentUsers.USER_A);
+        requestExtraction(documentId, DevelopmentUsers.USER_A).andExpect(status().isAccepted());
+        JobExecution extraction = jobExecutionService.findQueued(10).getFirst();
+        assertThat(jobWorker.execute(extraction)).isTrue();
+        assertThat(jobExecutionService.find(extraction.userId(), extraction.id()).failureCode())
+                .isEqualTo("PDF_TEXT_EMPTY");
+
+        MvcResult created = requestAlternativeText(
+                        documentId, DevelopmentUsers.USER_A, "  first\r\nsecond  ", true)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.inputKind").value("PASTED_TEXT"))
+                .andExpect(jsonPath("$.status").value("PROCESSING"))
+                .andExpect(jsonPath("$.textLength").value(16))
+                .andExpect(jsonPath("$.text").doesNotExist())
+                .andReturn();
+        UUID analysisId = UUID.fromString(com.jayway.jsonpath.JsonPath.read(
+                created.getResponse().getContentAsString(), "$.documentAnalysisId"));
+
+        requestAlternativeText(documentId, DevelopmentUsers.USER_A, "  first\nsecond  ", true)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.documentAnalysisId").value(analysisId.toString()));
+
+        assertThat(jdbcClient.sql("SELECT alternative_text FROM career_document_alternative_text "
+                        + "WHERE document_analysis_id = :id")
+                .param("id", analysisId).query(String.class).single())
+                .isEqualTo("  first\nsecond  ");
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_document_alternative_text")
+                .query(Integer.class).single()).isEqualTo(1);
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_document_analysis "
+                        + "WHERE input_kind = 'PDF_TEXT' AND status = 'FAILED' "
+                        + "AND failure_code = 'PDF_TEXT_EMPTY'")
+                .query(Integer.class).single()).isEqualTo(1);
+        assertThat(jdbcClient.sql("SELECT job_execution_id FROM career_document_analysis "
+                        + "WHERE document_analysis_id = :id")
+                .param("id", analysisId).query(UUID.class).optional()).isEmpty();
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM job_execution")
+                .query(Integer.class).single()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("추출 성공 문서와 다른 사용자의 문서는 대체 텍스트 입력을 거부한다")
+    void 허용되지_않은_문서의_대체_텍스트를_거부한다() throws Exception {
+        UUID documentId = uploadPdf(pdf("success"), DevelopmentUsers.USER_A);
+        requestExtraction(documentId, DevelopmentUsers.USER_A).andExpect(status().isAccepted());
+        assertThat(jobWorker.execute(jobExecutionService.findQueued(10).getFirst())).isTrue();
+
+        requestAlternativeText(documentId, DevelopmentUsers.USER_A, "fallback", true)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALTERNATIVE_TEXT_NOT_ALLOWED"));
+        requestAlternativeText(documentId, DevelopmentUsers.USER_B, "fallback", true)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CAREER_DOCUMENT_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("빈 대체 텍스트와 CSRF 없는 요청을 거부한다")
+    void 빈_대체_텍스트와_CSRF_없는_요청을_거부한다() throws Exception {
+        UUID documentId = uploadPdf(pdf(), DevelopmentUsers.USER_A);
+
+        requestAlternativeText(documentId, DevelopmentUsers.USER_A, " \r\n ", true)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("ALTERNATIVE_TEXT_EMPTY"));
+        requestAlternativeText(documentId, DevelopmentUsers.USER_A, "fallback", false)
+                .andExpect(status().isForbidden());
+    }
+
     private org.springframework.test.web.servlet.ResultActions requestExtraction(
             UUID documentId, CurrentUser user) throws Exception {
         return mockMvc.perform(post("/api/career-documents/{id}/extractions", documentId)
                 .with(authentication(authenticationOf(user)))
                 .with(csrf()));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions requestAlternativeText(
+            UUID documentId, CurrentUser user, String text, boolean withCsrf) throws Exception {
+        var request = post("/api/career-documents/{id}/alternative-texts", documentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"text\":\"" + jsonEscape(text) + "\"}")
+                .with(authentication(authenticationOf(user)));
+        if (withCsrf) {
+            request.with(csrf());
+        }
+        return mockMvc.perform(request);
+    }
+
+    private String jsonEscape(String value) {
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n");
     }
 
     private UUID uploadPdf(byte[] content, CurrentUser user) throws Exception {
