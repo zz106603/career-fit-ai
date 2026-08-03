@@ -11,6 +11,13 @@ spring:
       ddl-auto: validate
 
 career-fit:
+  ai:
+    structured-output:
+      retry:
+        max-attempts: ${AI_STRUCTURED_MAX_ATTEMPTS:3}
+        initial-delay-ms: ${AI_STRUCTURED_INITIAL_DELAY_MS:200}
+        multiplier: ${AI_STRUCTURED_BACKOFF_MULTIPLIER:2.0}
+        max-delay-ms: ${AI_STRUCTURED_MAX_DELAY_MS:2000}
   storage:
     local:
       root: ${FILE_STORAGE_ROOT:./data/files}

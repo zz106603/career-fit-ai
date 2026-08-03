@@ -18,6 +18,19 @@ final class FakeProviderSupport {
             throw new ProviderException(
                     ProviderErrorType.INVALID_RESPONSE, "Fake Provider invalid response");
         }
+        if (behavior == FakeProviderBehavior.RATE_LIMIT) {
+            throw new ProviderException(ProviderErrorType.RATE_LIMIT, "Fake Provider rate limit");
+        }
+        if (behavior == FakeProviderBehavior.PROVIDER_ERROR) {
+            throw new ProviderException(ProviderErrorType.PROVIDER_ERROR, "Fake Provider error");
+        }
+        if (behavior == FakeProviderBehavior.POLICY_REJECTION) {
+            throw new ProviderException(ProviderErrorType.POLICY_REJECTION, "Fake Provider policy rejection");
+        }
+        if (behavior == FakeProviderBehavior.CONFIGURATION_ERROR) {
+            throw new ProviderException(
+                    ProviderErrorType.CONFIGURATION_ERROR, "Fake Provider configuration error");
+        }
     }
 
     static byte[] digest(String input) {

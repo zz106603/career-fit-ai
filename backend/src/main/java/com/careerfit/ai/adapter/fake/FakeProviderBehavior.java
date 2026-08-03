@@ -4,5 +4,9 @@ package com.careerfit.ai.adapter.fake;
 public enum FakeProviderBehavior {
     SUCCESS,
     TIMEOUT,
+    RATE_LIMIT,
+    PROVIDER_ERROR,
+    CONFIGURATION_ERROR,
+    POLICY_REJECTION,
     INVALID_RESPONSE
 }
