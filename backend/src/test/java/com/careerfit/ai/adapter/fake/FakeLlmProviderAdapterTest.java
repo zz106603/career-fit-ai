@@ -9,6 +9,8 @@ import com.careerfit.ai.port.error.ProviderException;
 import com.careerfit.ai.port.model.LlmRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @DisplayName("Fake LLM Provider Adapter 테스트")
 class FakeLlmProviderAdapterTest {
@@ -44,5 +46,23 @@ class FakeLlmProviderAdapterTest {
                 .isInstanceOf(ProviderException.class)
                 .extracting("errorType")
                 .isEqualTo(ProviderErrorType.INVALID_RESPONSE);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "RATE_LIMIT, RATE_LIMIT",
+        "PROVIDER_ERROR, PROVIDER_ERROR",
+        "CONFIGURATION_ERROR, CONFIGURATION_ERROR",
+        "POLICY_REJECTION, POLICY_REJECTION"
+    })
+    @DisplayName("재시도 판단에 필요한 Provider 오류를 재현한다")
+    void 재시도_판단용_Provider_오류를_재현한다(
+            FakeProviderBehavior behavior, ProviderErrorType expected) {
+        LlmProviderPort port = new FakeLlmProviderAdapter(behavior);
+
+        assertThatThrownBy(() -> port.generate(REQUEST))
+                .isInstanceOf(ProviderException.class)
+                .extracting("errorType")
+                .isEqualTo(expected);
     }
 }
