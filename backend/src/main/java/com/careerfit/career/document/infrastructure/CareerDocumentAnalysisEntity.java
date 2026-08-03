@@ -12,7 +12,7 @@ class CareerDocumentAnalysisEntity {
     @Id @Column(name = "document_analysis_id") private UUID id;
     @Column(name = "document_id", nullable = false) private UUID documentId;
     @Column(name = "user_id", nullable = false) private UUID userId;
-    @Column(name = "job_execution_id", nullable = false) private UUID jobExecutionId;
+    @Column(name = "job_execution_id") private UUID jobExecutionId;
     @Enumerated(EnumType.STRING) @Column(name = "input_kind", nullable = false) private CareerDocumentInputKind inputKind;
     @Enumerated(EnumType.STRING) @Column(name = "status", nullable = false) private CareerDocumentAnalysisStatus status;
     @Column(name = "input_version", nullable = false, length = 200) private String inputVersion;

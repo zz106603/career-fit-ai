@@ -29,6 +29,12 @@ public class JpaCareerDocumentAnalysisRepository implements CareerDocumentAnalys
         return analyses.findFirstByUserIdAndDocumentIdAndInputVersionAndStatusIn(
                 userId.value(), documentId.value(), inputVersion, ACTIVE).map(this::toDomain);
     }
+    @Override @Transactional(readOnly=true)
+    public Optional<CareerDocumentAnalysis> findLatest(
+            UserId userId, CareerDocumentId documentId, CareerDocumentInputKind inputKind) {
+        return analyses.findFirstByUserIdAndDocumentIdAndInputKindOrderByCreatedAtDesc(
+                userId.value(), documentId.value(), inputKind).map(this::toDomain);
+    }
     @Override @Transactional
     public void savePages(List<CareerDocumentPage> values) {
         pages.saveAllAndFlush(values.stream().map(this::toEntity).toList());
@@ -40,12 +46,14 @@ public class JpaCareerDocumentAnalysisRepository implements CareerDocumentAnalys
     }
     private CareerDocumentAnalysisEntity toEntity(CareerDocumentAnalysis a) {
         return new CareerDocumentAnalysisEntity(a.id().value(), a.documentId().value(), a.userId().value(),
-                a.jobExecutionId().value(), a.inputKind(), a.status(), a.inputVersion(), a.workflowVersion(),
+                a.jobExecutionId() == null ? null : a.jobExecutionId().value(),
+                a.inputKind(), a.status(), a.inputVersion(), a.workflowVersion(),
                 a.extractedTextReference(), a.failureCode(), a.createdAt(), a.startedAt(), a.completedAt());
     }
     private CareerDocumentAnalysis toDomain(CareerDocumentAnalysisEntity e) {
         return new CareerDocumentAnalysis(new CareerDocumentAnalysisId(e.id()), new CareerDocumentId(e.documentId()),
-                new UserId(e.userId()), new JobExecutionId(e.jobExecutionId()), e.inputKind(), e.status(),
+                new UserId(e.userId()), e.jobExecutionId() == null ? null : new JobExecutionId(e.jobExecutionId()),
+                e.inputKind(), e.status(),
                 e.inputVersion(), e.workflowVersion(), e.extractedTextReference(), e.failureCode(),
                 e.createdAt(), e.startedAt(), e.completedAt());
     }
