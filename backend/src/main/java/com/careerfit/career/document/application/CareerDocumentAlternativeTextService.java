@@ -7,6 +7,8 @@ import com.careerfit.career.document.domain.CareerDocumentAnalysisId;
 import com.careerfit.career.document.domain.CareerDocumentAnalysisStatus;
 import com.careerfit.career.document.domain.CareerDocumentId;
 import com.careerfit.career.document.domain.CareerDocumentInputKind;
+import com.careerfit.career.document.domain.CareerDocumentPage;
+import com.careerfit.career.extraction.application.CareerCandidateExtractionJobService;
 import com.careerfit.identity.CurrentUserProvider;
 import com.careerfit.identity.UserId;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +18,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Set;
+import java.util.List;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,18 +36,21 @@ public class CareerDocumentAlternativeTextService {
     private final CareerDocumentAlternativeTextRepository alternativeTexts;
     private final CurrentUserProvider currentUserProvider;
     private final Clock clock;
+    private final CareerCandidateExtractionJobService candidateJobs;
 
     public CareerDocumentAlternativeTextService(
             CareerDocumentRepository documents,
             CareerDocumentAnalysisRepository analyses,
             CareerDocumentAlternativeTextRepository alternativeTexts,
             CurrentUserProvider currentUserProvider,
-            Clock clock) {
+            Clock clock,
+            CareerCandidateExtractionJobService candidateJobs) {
         this.documents = documents;
         this.analyses = analyses;
         this.alternativeTexts = alternativeTexts;
         this.currentUserProvider = currentUserProvider;
         this.clock = clock;
+        this.candidateJobs = candidateJobs;
     }
 
     @Transactional
@@ -84,6 +90,10 @@ public class CareerDocumentAlternativeTextService {
         try {
             analyses.save(analysis);
             alternativeTexts.save(alternativeText);
+            analyses.savePages(List.of(new CareerDocumentPage(
+                    analysis.id(), document.id(), document.userId(), 1, normalized.text(),
+                    normalized.text().length(), normalized.checksum())));
+            candidateJobs.enqueue(analysis);
         } catch (DataAccessException exception) {
             throw new AlternativeTextException(
                     AlternativeTextFailure.SAVE_FAILED, "대체 텍스트 저장에 실패했습니다.");

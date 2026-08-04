@@ -8,6 +8,7 @@ import com.careerfit.common.async.application.JobHandlerException;
 import com.careerfit.common.async.domain.JobExecution;
 import com.careerfit.common.async.domain.JobType;
 import com.careerfit.identity.UserId;
+import com.careerfit.career.extraction.application.CareerCandidateExtractionJobService;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -18,16 +19,22 @@ public class CareerDocumentExtractionJobHandler implements JobHandler {
     private final CareerDocumentRepository documents;
     private final FileStoragePort fileStorage;
     private final PdfTextExtractor extractor;
+    private final CareerDocumentAnalysisRepository analyses;
+    private final CareerCandidateExtractionJobService candidateJobs;
 
     public CareerDocumentExtractionJobHandler(
             CareerDocumentExtractionPersistence persistence,
             CareerDocumentRepository documents,
             FileStoragePort fileStorage,
-            PdfTextExtractor extractor) {
+            PdfTextExtractor extractor,
+            CareerDocumentAnalysisRepository analyses,
+            CareerCandidateExtractionJobService candidateJobs) {
         this.persistence = persistence;
         this.documents = documents;
         this.fileStorage = fileStorage;
         this.extractor = extractor;
+        this.analyses = analyses;
+        this.candidateJobs = candidateJobs;
     }
 
     @Override
@@ -57,6 +64,10 @@ public class CareerDocumentExtractionJobHandler implements JobHandler {
                 throw failure(CareerDocumentExtractionFailure.PAGE_TEXT_SAVE_FAILED,
                         "페이지 텍스트 저장에 실패했습니다.");
             }
+            CareerDocumentAnalysis extracted = analyses.find(userId, analysisId)
+                    .orElseThrow(() -> failure(CareerDocumentExtractionFailure.PAGE_TEXT_SAVE_FAILED,
+                            "저장된 문서 분석을 찾을 수 없습니다."));
+            candidateJobs.enqueue(extracted);
         } catch (PdfExtractionException exception) {
             fail(analysis, exception.failure());
         } catch (JobHandlerException exception) {
