@@ -9,6 +9,7 @@ import com.careerfit.common.async.domain.JobType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -36,14 +37,11 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private JobExecutionService executionService;
 
-    @Autowired
     private JobDispatcher dispatcher;
 
-    @Autowired
     private JobWorker worker;
 
-    @Autowired
-    private RecordingSuccessHandler successHandler;
+    private final RecordingSuccessHandler successHandler = new RecordingSuccessHandler();
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -52,6 +50,10 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
     void 데이터베이스와_Handler를_초기화한다() {
         jdbcClient.sql("TRUNCATE job_execution CASCADE").update();
         successHandler.reset();
+        JobHandlerRegistry handlerRegistry = new JobHandlerRegistry(List.of(
+                successHandler, new RecordingFailureHandler()));
+        worker = new JobWorker(executionService, handlerRegistry);
+        dispatcher = new JobDispatcher(executionService, worker, false, 2);
     }
 
     @Test
@@ -99,7 +101,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
     @DisplayName("Handler의 업무 실패 코드를 FAILED 상태에 저장한다")
     void Handler의_업무_실패_코드를_FAILED_상태에_저장한다() {
         JobExecution queued = create(
-                UUID.randomUUID(), JobType.COMPANY_RESEARCH, "handler-failure");
+                UUID.randomUUID(), JobType.CAREER_CANDIDATE_EXTRACTION, "handler-failure");
 
         assertThat(dispatcher.dispatchBatch()).isEqualTo(1);
 
@@ -172,7 +174,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
 
         @Override
         public JobType type() {
-            return JobType.COMPANY_RESEARCH;
+            return JobType.CAREER_CANDIDATE_EXTRACTION;
         }
 
         @Override
@@ -184,16 +186,6 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
 
     @TestConfiguration
     static class TestHandlerConfiguration {
-
-        @Bean
-        RecordingSuccessHandler recordingSuccessHandler() {
-            return new RecordingSuccessHandler();
-        }
-
-        @Bean
-        RecordingFailureHandler recordingFailureHandler() {
-            return new RecordingFailureHandler();
-        }
 
         @Bean
         @Primary
