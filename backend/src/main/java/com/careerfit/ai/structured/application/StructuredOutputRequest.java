@@ -10,6 +10,8 @@ public record StructuredOutputRequest<T>(
         String promptVersion,
         String schemaVersion,
         String prompt,
+        String schemaName,
+        String schemaJson,
         StructuredOutputDecoder<T> decoder) {
 
     public StructuredOutputRequest {
@@ -19,6 +21,12 @@ public record StructuredOutputRequest<T>(
         requireText(schemaVersion, "Schema 버전");
         Objects.requireNonNull(prompt, "Prompt는 필수입니다.");
         Objects.requireNonNull(decoder, "Structured Output decoder는 필수입니다.");
+    }
+
+    public StructuredOutputRequest(
+            UUID workflowExecutionId, String requestId, String purpose, String promptVersion,
+            String schemaVersion, String prompt, StructuredOutputDecoder<T> decoder) {
+        this(workflowExecutionId, requestId, purpose, promptVersion, schemaVersion, prompt, null, null, decoder);
     }
 
     private static void requireText(String value, String name) {
