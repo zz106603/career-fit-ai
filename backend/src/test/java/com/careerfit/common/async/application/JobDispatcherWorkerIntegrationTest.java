@@ -99,7 +99,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
     @DisplayName("Handler의 업무 실패 코드를 FAILED 상태에 저장한다")
     void Handler의_업무_실패_코드를_FAILED_상태에_저장한다() {
         JobExecution queued = create(
-                UUID.randomUUID(), JobType.CAREER_CANDIDATE_EXTRACTION, "handler-failure");
+                UUID.randomUUID(), JobType.COMPANY_RESEARCH, "handler-failure");
 
         assertThat(dispatcher.dispatchBatch()).isEqualTo(1);
 
@@ -172,7 +172,7 @@ class JobDispatcherWorkerIntegrationTest extends PostgresIntegrationTest {
 
         @Override
         public JobType type() {
-            return JobType.CAREER_CANDIDATE_EXTRACTION;
+            return JobType.COMPANY_RESEARCH;
         }
 
         @Override
