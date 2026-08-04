@@ -197,6 +197,8 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
 
         JobExecution queued = jobExecutionService.findQueued(10).getFirst();
         assertThat(jobWorker.execute(queued)).isTrue();
+        JobExecution candidateExtraction = jobExecutionService.findQueued(10).getFirst();
+        assertThat(jobWorker.execute(candidateExtraction)).isTrue();
 
         JobExecution completed = jobExecutionService.find(queued.userId(), queued.id());
         assertThat(completed.status()).isEqualTo(JobExecutionStatus.SUCCEEDED);
@@ -212,7 +214,13 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
         assertThat(jdbcClient.sql("SELECT status FROM career_document_analysis "
                         + "WHERE document_analysis_id = :id")
                 .param("id", analysisId).query(String.class).single())
-                .isEqualTo("PROCESSING");
+                .isEqualTo("SUCCEEDED");
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_extraction_candidate "
+                        + "WHERE document_analysis_id = :id AND status = 'PENDING_REVIEW'")
+                .param("id", analysisId).query(Integer.class).single()).isEqualTo(1);
+        assertThat(jdbcClient.sql("SELECT excerpt FROM experience_evidence "
+                        + "WHERE document_analysis_id = :id")
+                .param("id", analysisId).query(String.class).single()).contains("first");
     }
 
     @Test
@@ -264,7 +272,15 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
                         + "WHERE document_analysis_id = :id")
                 .param("id", analysisId).query(UUID.class).optional()).isEmpty();
         assertThat(jdbcClient.sql("SELECT COUNT(*) FROM job_execution")
-                .query(Integer.class).single()).isEqualTo(1);
+                .query(Integer.class).single()).isEqualTo(2);
+        JobExecution candidateExtraction = jobExecutionService.findQueued(10).getFirst();
+        assertThat(jobWorker.execute(candidateExtraction)).isTrue();
+        assertThat(jdbcClient.sql("SELECT status FROM career_document_analysis "
+                        + "WHERE document_analysis_id = :id")
+                .param("id", analysisId).query(String.class).single()).isEqualTo("SUCCEEDED");
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_extraction_candidate "
+                        + "WHERE document_analysis_id = :id")
+                .param("id", analysisId).query(Integer.class).single()).isEqualTo(1);
     }
 
     @Test
