@@ -67,6 +67,60 @@ export DB_PASSWORD='<.env에 설정한 값>'
 `local` 프로필에서 `DB_PASSWORD`가 누락되면 애플리케이션은 기동에 실패합니다.
 실제 비밀번호·토큰·API 키는 설정 파일이나 명령행 인자로 커밋하지 않습니다.
 
+## AI Provider
+
+기본 Provider는 비용과 외부 의존이 없는 `fake`입니다. 자동 테스트와 CI도 Fake를
+사용하므로 OpenAI API를 호출하지 않습니다. 실제 경력 후보 추출을 확인할 때만
+로컬 환경변수로 OpenAI Provider를 명시적으로 활성화합니다.
+
+```powershell
+$env:AI_PROVIDER = 'openai'
+$env:OPENAI_API_KEY = '<로컬에서 직접 입력>'
+$env:OPENAI_MODEL = 'gpt-5.6-luna'
+$env:OPENAI_TIMEOUT = '30s'
+$env:OPENAI_MAX_OUTPUT_TOKENS = '500'
+$env:ASYNC_DISPATCHER_ENABLED = 'true'
+```
+
+이 상태에서 PDF 텍스트 추출 작업을 실행하면 OpenAI API 요청이 발생하며 입력·출력
+토큰과 재시도 횟수에 따라 비용이 발생할 수 있습니다. API 키는 `.env.example`,
+Git 추적 파일, DB, 로그에 입력하지 않습니다. 실제 키가 없는 기본 실행에서는
+`AI_PROVIDER=fake`를 유지합니다.
+
+루트 `.env`는 Docker Compose의 PostgreSQL 설정에만 사용하며 Spring Boot가 자동으로
+읽지 않습니다. 일반 실행은 코드의 안전한 기본값인 `AI_PROVIDER=fake`,
+`ASYNC_DISPATCHER_ENABLED=false`를 사용합니다.
+
+실제 AI smoke test는 IntelliJ의 별도 실행 구성에 위 환경변수를 저장해 실행합니다.
+이 구성에서만 `AI_PROVIDER=openai`와 `ASYNC_DISPATCHER_ENABLED=true`를 지정합니다.
+Dispatcher는 API가 생성한 `QUEUED` 작업을 기본 5초 간격으로 조회해 Worker와 경력
+문서 Handler를 실행합니다.
+
+### 실제 OpenAI Adapter smoke test
+
+실제 Responses API 호환성은 일반 `test`와 분리된 `openAiSmokeTest` Gradle task로
+검증합니다. 이 task는 Docker·DB·Spring Boot를 사용하지 않으며 실제 OpenAI API를
+한 번 호출하므로 비용이 발생합니다. 일반 `test`, `build`, CI에서는 실행되지 않습니다.
+
+IntelliJ에서 `openAiSmokeTest` Gradle 실행 구성을 만들고 다음 환경변수만 지정합니다.
+
+```text
+OPENAI_API_KEY=<실제 키>
+OPENAI_MODEL=gpt-5.6-luna
+OPENAI_MAX_OUTPUT_TOKENS=500
+OPENAI_SMOKE_TIMEOUT=PT30S
+```
+
+실행 task는 다음과 같습니다.
+
+```text
+openAiSmokeTest
+```
+
+성공 시 Structured Output의 `value=smoke-ok`, provider/model/request ID와 양수인 전체
+토큰 수를 검증하고 민감정보가 없는 호출 메타데이터를 콘솔에 출력합니다. API 키가
+없거나 테스트가 한 건도 발견되지 않으면 네트워크 호출 전에 명확한 오류로 중단합니다.
+
 ## 테스트
 
 통합 테스트가 pgvector 이미지를 Testcontainers로 실행하므로 Docker가 실행 중이어야

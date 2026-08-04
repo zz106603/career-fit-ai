@@ -12,6 +12,20 @@ java {
     }
 }
 
+sourceSets {
+    smokeTest {
+        java.srcDir 'src/smokeTest/java'
+        resources.srcDir 'src/smokeTest/resources'
+        compileClasspath += sourceSets.main.output + configurations.testCompileClasspath
+        runtimeClasspath += output + compileClasspath + configurations.testRuntimeClasspath
+    }
+}
+
+configurations {
+    smokeTestImplementation.extendsFrom testImplementation
+    smokeTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 repositories {
     mavenCentral()
 }
@@ -44,4 +58,24 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.register('openAiSmokeTest', Test) {
+    group = 'verification'
+    description = '실제 OpenAI Responses API를 1회 호출하는 수동 smoke test'
+    testClassesDirs = sourceSets.smokeTest.output.classesDirs
+    classpath = sourceSets.smokeTest.runtimeClasspath
+    useJUnitPlatform()
+    failOnNoDiscoveredTests = true
+    outputs.upToDateWhen { false }
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+    doFirst {
+        if (!System.getenv('OPENAI_API_KEY')) {
+            throw new GradleException('OPENAI_API_KEY가 필요합니다. IntelliJ 실행 구성 또는 현재 프로세스 환경변수에 설정하세요.')
+        }
+    }
 }

@@ -15,6 +15,7 @@ import com.careerfit.career.document.domain.CareerDocumentAnalysisId;
 import com.careerfit.career.document.domain.CareerDocumentId;
 import com.careerfit.career.document.domain.CareerDocumentInputKind;
 import com.careerfit.common.async.domain.JobExecutionId;
+import com.careerfit.career.extraction.application.CareerCandidateExtractionJobService;
 import com.careerfit.identity.CurrentUserProvider;
 import com.careerfit.identity.UserId;
 import java.time.Clock;
@@ -37,6 +38,8 @@ class CareerDocumentAlternativeTextServiceTest {
     private final CareerDocumentAlternativeTextRepository alternativeTexts =
             mock(CareerDocumentAlternativeTextRepository.class);
     private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
+    private final CareerCandidateExtractionJobService candidateJobs =
+            mock(CareerCandidateExtractionJobService.class);
     private final UserId userId = new UserId(UUID.randomUUID());
     private final CareerDocumentId documentId = new CareerDocumentId(UUID.randomUUID());
     private CareerDocumentAlternativeTextService service;
@@ -45,7 +48,7 @@ class CareerDocumentAlternativeTextServiceTest {
     void 서비스를_준비한다() {
         service = new CareerDocumentAlternativeTextService(
                 documents, analyses, alternativeTexts, currentUserProvider,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC), candidateJobs);
         when(currentUserProvider.currentUserId()).thenReturn(userId);
         when(documents.findActiveForUpdate(userId, documentId)).thenReturn(Optional.of(document()));
         when(analyses.findActive(any(), any(), any())).thenReturn(Optional.empty());
@@ -63,7 +66,9 @@ class CareerDocumentAlternativeTextServiceTest {
         assertThat(result.created()).isTrue();
         assertThat(result.inputKind()).isEqualTo(CareerDocumentInputKind.PASTED_TEXT);
         verify(analyses).save(any(CareerDocumentAnalysis.class));
+        verify(analyses).savePages(any());
         verify(alternativeTexts).save(any(CareerDocumentAlternativeText.class));
+        verify(candidateJobs).enqueue(any(CareerDocumentAnalysis.class));
     }
 
     @Test

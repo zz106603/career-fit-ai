@@ -15,14 +15,17 @@ Handler 호출은 선점 트랜잭션이 끝난 뒤 수행한다. 성공·실패
 career-fit:
   async:
     dispatcher:
-      enabled: false
-      fixed-delay: 5s
-      batch-size: 10
+      enabled: ${ASYNC_DISPATCHER_ENABLED:false}
+      fixed-delay: ${ASYNC_DISPATCHER_FIXED_DELAY:5s}
+      batch-size: ${ASYNC_DISPATCHER_BATCH_SIZE:10}
 ```
 
 - `enabled`: 주기 polling 활성화 여부. 필요한 Handler가 준비된 환경에서만 활성화한다.
 - `fixed-delay`: 이전 polling 종료 후 다음 polling까지의 간격
 - `batch-size`: 한 번에 조회할 최대 QUEUED 작업 수. 1 이상이어야 한다.
+
+로컬 실제 호출 smoke test에서는 `ASYNC_DISPATCHER_ENABLED=true`로 설정한다. 기본값은
+`false`이므로 자동 테스트와 일반 로컬 실행에서 외부 작업이 임의로 실행되지 않는다.
 
 현재 MVP Worker는 batch를 순서대로 동기 실행한다. 유형별 동시 실행 상한이 실제로
 필요해질 때 제한된 Executor 도입을 검토한다.
