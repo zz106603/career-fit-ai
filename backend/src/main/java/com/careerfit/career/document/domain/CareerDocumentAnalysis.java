@@ -77,6 +77,14 @@ public record CareerDocumentAnalysis(
         return copy(CareerDocumentAnalysisStatus.PROCESSING, reference, null, startedAt, null);
     }
 
+    public CareerDocumentAnalysis succeed(Instant completedAt) {
+        requireStatus(CareerDocumentAnalysisStatus.PROCESSING);
+        if (extractedTextReference == null) {
+            throw new IllegalStateException("텍스트 추출이 완료되지 않은 분석은 성공 처리할 수 없습니다.");
+        }
+        return copy(CareerDocumentAnalysisStatus.SUCCEEDED, extractedTextReference, null, startedAt, completedAt);
+    }
+
     public CareerDocumentAnalysis fail(String code, Instant completedAt) {
         if (status != CareerDocumentAnalysisStatus.QUEUED
                 && status != CareerDocumentAnalysisStatus.PROCESSING) {
