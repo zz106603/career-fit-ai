@@ -94,7 +94,8 @@ public class StructuredOutputExecutor {
     private <T> AttemptResult<T> performAttempt(
             StructuredOutputRequest<T> request, AiCallAttempt attempt) {
         try {
-            LlmResponse response = provider.generate(new LlmRequest(request.prompt()));
+            LlmResponse response = provider.generate(
+                    new LlmRequest(request.prompt(), request.schemaName(), request.schemaJson()));
             ResponseMetadata metadata = metadata(response);
             JsonNode root;
             try {

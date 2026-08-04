@@ -12,6 +12,12 @@ spring:
 
 career-fit:
   ai:
+    provider: ${AI_PROVIDER:fake}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-5.6-luna}
+      timeout: ${OPENAI_TIMEOUT:30s}
+      max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:500}
     structured-output:
       retry:
         max-attempts: ${AI_STRUCTURED_MAX_ATTEMPTS:3}
@@ -23,9 +29,9 @@ career-fit:
       root: ${FILE_STORAGE_ROOT:./data/files}
   async:
     dispatcher:
-      enabled: false
-      fixed-delay: 5s
-      batch-size: 10
+      enabled: ${ASYNC_DISPATCHER_ENABLED:false}
+      fixed-delay: ${ASYNC_DISPATCHER_FIXED_DELAY:5s}
+      batch-size: ${ASYNC_DISPATCHER_BATCH_SIZE:10}
     recovery:
       enabled: false
       fixed-delay: 1m
