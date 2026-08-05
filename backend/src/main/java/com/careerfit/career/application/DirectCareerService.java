@@ -69,6 +69,9 @@ public class DirectCareerService {
         if (version.isConfirmed()) {
             throw new CareerVersionAlreadyConfirmedException();
         }
+        if (version.sourceType() != CareerExperienceSourceType.USER_DIRECT) {
+            throw new IllegalStateException("사용자 직접 입력 경력만 이 경로에서 확정할 수 있습니다.");
+        }
 
         Instant now = clock.instant();
         repository.supersedeCurrentVersion(userId, experienceId, versionId, now);

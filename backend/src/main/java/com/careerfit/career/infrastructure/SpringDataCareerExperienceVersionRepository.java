@@ -36,6 +36,18 @@ interface SpringDataCareerExperienceVersionRepository
             @Param("userId") UUID userId, @Param("versionId") UUID versionId);
 
     @Query("""
+            select version
+              from CareerExperienceVersionEntity version
+             where version.experienceId = :experienceId
+               and version.userId = :userId
+               and version.confirmedAt is not null
+               and version.supersededAt is null
+               and version.deletedAt is null
+            """)
+    Optional<CareerExperienceVersionEntity> findCurrentConfirmedByExperience(
+            @Param("userId") UUID userId, @Param("experienceId") UUID experienceId);
+
+    @Query("""
             select coalesce(max(version.versionNo), 0) + 1
               from CareerExperienceVersionEntity version
              where version.experienceId = :experienceId
@@ -68,8 +80,6 @@ interface SpringDataCareerExperienceVersionRepository
              where version.id = :versionId
                and version.experienceId = :experienceId
                and version.userId = :userId
-               and version.sourceType =
-                   com.careerfit.career.domain.CareerExperienceSourceType.USER_DIRECT
                and version.confirmedAt is null
                and version.deletedAt is null
             """)
