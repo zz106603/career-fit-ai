@@ -12,6 +12,7 @@ import com.careerfit.identity.UserId;
 import org.springframework.stereotype.Component;
 
 @Component
+/** 저장된 문서 텍스트를 AI 경력 후보와 Evidence로 변환하는 비동기 작업 Handler다. */
 public class CareerCandidateExtractionJobHandler implements JobHandler {
     static final String FAILURE_CODE = "AI_CANDIDATE_EXTRACTION_FAILED";
 

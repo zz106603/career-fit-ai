@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 
 @Service
+/** AI 출력을 검증한 뒤 미확정 후보와 원문 Evidence를 함께 만드는 추출 유스케이스다. */
 public class CareerCandidateExtractionService {
     static final String PROMPT_VERSION = "career-candidate-v1";
     static final String SCHEMA_VERSION = "career-candidate-schema-v1";

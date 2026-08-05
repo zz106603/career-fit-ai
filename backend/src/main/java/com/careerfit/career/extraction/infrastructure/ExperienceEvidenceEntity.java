@@ -23,4 +23,12 @@ class ExperienceEvidenceEntity {
         this.id=id; this.candidateId=candidateId; this.analysisId=analysisId; this.documentId=documentId;
         this.userId=userId; this.pageNumber=pageNumber; this.excerpt=excerpt;
     }
+
+    UUID id() { return id; }
+    UUID candidateId() { return candidateId; }
+    UUID analysisId() { return analysisId; }
+    UUID documentId() { return documentId; }
+    UUID userId() { return userId; }
+    int pageNumber() { return pageNumber; }
+    String excerpt() { return excerpt; }
 }
