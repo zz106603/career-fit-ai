@@ -25,6 +25,9 @@ public interface CareerExperienceRepository {
     Optional<CareerExperienceVersion> findCurrentConfirmedVersion(
             UserId userId, CareerExperienceVersionId versionId);
 
+    Optional<CareerExperienceVersion> findCurrentConfirmedByExperience(
+            UserId userId, CareerExperienceId experienceId);
+
     int nextVersionNumber(UserId userId, CareerExperienceId experienceId);
 
     void supersedeCurrentVersion(

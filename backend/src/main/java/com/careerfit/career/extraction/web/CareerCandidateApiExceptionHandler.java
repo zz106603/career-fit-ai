@@ -1,17 +1,32 @@
 package com.careerfit.career.extraction.web;
 
 import com.careerfit.career.extraction.application.CareerCandidateNotFoundException;
+import com.careerfit.career.application.CareerExperienceNotFoundException;
+import com.careerfit.career.application.CareerVersionAlreadyConfirmedException;
 import com.careerfit.common.web.ApiErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackageClasses = CareerCandidateController.class)
+@RestControllerAdvice(basePackageClasses = {
+        CareerCandidateController.class, DocumentCareerConfirmationController.class})
 public class CareerCandidateApiExceptionHandler {
     @ExceptionHandler(CareerCandidateNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(CareerCandidateNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, "CAREER_CANDIDATE_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(CareerExperienceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleExperienceNotFound(
+            CareerExperienceNotFoundException exception) {
+        return response(HttpStatus.NOT_FOUND, "CAREER_EXPERIENCE_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(CareerVersionAlreadyConfirmedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAlreadyConfirmed(
+            CareerVersionAlreadyConfirmedException exception) {
+        return response(HttpStatus.CONFLICT, "CAREER_VERSION_ALREADY_CONFIRMED", exception.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

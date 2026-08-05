@@ -44,4 +44,11 @@ public record CareerExtractionCandidate(
                 role, period, description, CareerExtractionCandidateStatus.REJECTED, revisionNo,
                 model, promptVersion, schemaVersion, aiCallExecutionId, createdAt);
     }
+
+    public CareerExtractionCandidate confirm() {
+        if (!isEditable()) throw new IllegalStateException("검토 가능한 후보만 확정할 수 있습니다.");
+        return new CareerExtractionCandidate(id, analysisId, userId, candidateType, organization,
+                role, period, description, CareerExtractionCandidateStatus.CONFIRMED, revisionNo,
+                model, promptVersion, schemaVersion, aiCallExecutionId, createdAt);
+    }
 }
