@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+/** 외부 호출이나 문서 처리처럼 오래 걸리는 업무를 재시도 가능한 실행 단위로 표현한다. */
 public record JobExecution(
         JobExecutionId id,
         UUID userId,

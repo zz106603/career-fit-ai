@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+/** 문서 분석 실행과 비동기 작업을 생성하며, 실제 PDF 처리는 Worker에 위임한다. */
 public class CareerDocumentExtractionService {
 
     static final String WORKFLOW_VERSION = "pdf-text-extraction-v1";

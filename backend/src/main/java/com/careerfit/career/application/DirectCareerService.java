@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+/** 사용자가 직접 입력한 경력을 버전으로 저장하고 명시적 확정 이후에만 검색 가능하게 한다. */
 public class DirectCareerService {
 
     private final CareerExperienceRepository repository;

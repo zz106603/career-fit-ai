@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
+/** 작업 유형에 맞는 Handler를 찾아 실행하고 성공·실패 상태를 일관되게 기록한다. */
 public class JobWorker {
 
     private static final String UNEXPECTED_HANDLER_ERROR = "UNEXPECTED_HANDLER_ERROR";

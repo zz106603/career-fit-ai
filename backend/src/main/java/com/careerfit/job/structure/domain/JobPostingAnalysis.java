@@ -5,6 +5,7 @@ import com.careerfit.job.domain.JobPostingId;
 import java.time.Instant;
 import java.util.Objects;
 
+/** 공고 원문을 구조화한 한 번의 분석 결과로, 재실행 시 기존 값을 덮어쓰지 않는다. */
 public record JobPostingAnalysis(
         JobPostingAnalysisId id,
         JobPostingId jobPostingId,

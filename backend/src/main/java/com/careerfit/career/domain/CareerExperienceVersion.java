@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /** 경력의 특정 시점 내용을 보존하는 버전이다. */
+/** 사용자가 확정하는 경력 내용의 불변 버전이며 새 분석은 현재 확정 버전만 사용한다. */
 public record CareerExperienceVersion(
         CareerExperienceVersionId id,
         CareerExperienceId experienceId,

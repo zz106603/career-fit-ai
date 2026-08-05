@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+/** 비동기 작업의 생성과 상태 전이를 관리하며 업무 Handler의 실행 내용은 알지 않는다. */
 public class JobExecutionService {
 
     private final JobExecutionRepository repository;

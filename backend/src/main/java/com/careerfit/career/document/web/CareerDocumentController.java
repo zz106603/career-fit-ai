@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/career-documents")
+/** 경력 문서 업로드부터 추출 요청까지 사용자 경력 입력 흐름의 HTTP 진입점이다. */
 public class CareerDocumentController {
 
     private final CareerDocumentService service;

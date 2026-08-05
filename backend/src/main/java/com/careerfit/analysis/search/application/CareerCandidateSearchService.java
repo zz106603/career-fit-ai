@@ -16,6 +16,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
+/** 공고 요구사항과 관련된 확정 경력만 userId 범위에서 Vector 검색하고 실행 기록을 남긴다. */
 public class CareerCandidateSearchService {
 
     private static final int M0_CANDIDATE_LIMIT = 10;

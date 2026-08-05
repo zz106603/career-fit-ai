@@ -13,6 +13,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
+/** Worker가 전달한 문서 추출 작업을 실행하고 성공 시 경력 후보 추출 작업을 이어서 등록한다. */
 public class CareerDocumentExtractionJobHandler implements JobHandler {
 
     private final CareerDocumentExtractionPersistence persistence;

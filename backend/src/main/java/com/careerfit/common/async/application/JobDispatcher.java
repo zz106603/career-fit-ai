@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+/** 대기 중인 작업을 주기적으로 찾아 Worker에 전달하는 비동기 실행 진입점이다. */
 public class JobDispatcher {
 
     private final JobExecutionService executionService;

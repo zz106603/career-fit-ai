@@ -18,6 +18,7 @@ import java.util.HexFormat;
 import org.springframework.stereotype.Service;
 
 @Service
+/** 확정된 최신 경력 버전만 검색 문서와 Vector 색인 대상으로 전환한다. */
 public class CareerIndexService {
 
     private final CareerExperienceRepository experienceRepository;
