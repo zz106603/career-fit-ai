@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
+/** PDF 원본을 검증·저장하고 현재 사용자 소유의 경력 문서로 등록한다. */
 public class CareerDocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(CareerDocumentService.class);

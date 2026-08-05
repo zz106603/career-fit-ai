@@ -5,6 +5,7 @@ import com.careerfit.job.structure.domain.JobRequirementCategory;
 import com.careerfit.job.structure.domain.JobRequirementId;
 import java.util.Objects;
 
+/** 공고 요구사항 하나에 대한 판정과 당시 채택한 경력 근거를 함께 보존한다. */
 public record RequirementMatchResult(
         JobRequirementId requirementId,
         JobPostingAnalysisId jobPostingAnalysisId,

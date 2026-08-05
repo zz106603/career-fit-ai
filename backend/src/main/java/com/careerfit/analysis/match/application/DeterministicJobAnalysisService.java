@@ -17,6 +17,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
+/** 구조화된 공고 요구사항과 확정 경력 근거를 결합해 재현 가능한 판정 결과를 저장한다. */
 public class DeterministicJobAnalysisService {
 
     private static final String WORKFLOW_VERSION = "deterministic-match-v1";

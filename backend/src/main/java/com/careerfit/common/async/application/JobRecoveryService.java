@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+/** 장시간 멈춘 PROCESSING 작업을 재대기 또는 실패로 전환해 비동기 흐름을 복구한다. */
 public class JobRecoveryService {
 
     public static final String STALE_RETRY_EXHAUSTED = "STALE_RETRY_EXHAUSTED";

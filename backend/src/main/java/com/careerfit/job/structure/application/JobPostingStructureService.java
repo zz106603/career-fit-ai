@@ -14,6 +14,7 @@ import java.time.Clock;
 import org.springframework.stereotype.Service;
 
 @Service
+/** 공고 원문을 요구사항 단위로 구조화하고 분석 가능한 상태로 저장한다. */
 public class JobPostingStructureService {
 
     private static final String WORKFLOW_VERSION = "fake-job-structure-v1";
