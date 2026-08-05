@@ -6,6 +6,7 @@ import com.careerfit.identity.UserId;
 import java.util.Objects;
 import java.util.UUID;
 
+/** 후보가 어느 문서·분석·페이지·발췌에서 나왔는지 추적하는 원문 근거다. */
 public record ExperienceEvidence(
         UUID id, UUID candidateId, CareerDocumentAnalysisId analysisId,
         CareerDocumentId documentId, UserId userId, int pageNumber, String excerpt) {

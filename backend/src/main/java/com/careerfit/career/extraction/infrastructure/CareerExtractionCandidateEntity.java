@@ -39,4 +39,20 @@ class CareerExtractionCandidateEntity {
         this.status=status; this.revisionNo=revisionNo; this.model=model; this.promptVersion=promptVersion;
         this.schemaVersion=schemaVersion; this.aiCallExecutionId=aiCallExecutionId; this.createdAt=createdAt;
     }
+
+    UUID id() { return id; }
+    UUID analysisId() { return analysisId; }
+    UUID userId() { return userId; }
+    String candidateType() { return candidateType; }
+    String organization() { return organization; }
+    String role() { return role; }
+    String period() { return period; }
+    String description() { return description; }
+    CareerExtractionCandidateStatus status() { return status; }
+    int revisionNo() { return revisionNo; }
+    String model() { return model; }
+    String promptVersion() { return promptVersion; }
+    String schemaVersion() { return schemaVersion; }
+    UUID aiCallExecutionId() { return aiCallExecutionId; }
+    Instant createdAt() { return createdAt; }
 }
