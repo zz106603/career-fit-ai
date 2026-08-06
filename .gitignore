@@ -160,3 +160,10 @@ data/
 application-*.local.yml
 application-*.local.yaml
 application-*.local.properties
+
+# Frontend dependencies and generated artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
