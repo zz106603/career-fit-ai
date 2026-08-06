@@ -18,7 +18,6 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,26 +32,27 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
     private final SecurityContextRepository securityContextRepository;
-    private final CsrfTokenRepository csrfTokenRepository;
     private final SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
     public AuthController(
             UserAccountService accountService,
             AuthenticationManager authenticationManager,
             SessionAuthenticationStrategy sessionAuthenticationStrategy,
-            SecurityContextRepository securityContextRepository,
-            CsrfTokenRepository csrfTokenRepository) {
+            SecurityContextRepository securityContextRepository) {
         this.accountService = accountService;
         this.authenticationManager = authenticationManager;
         this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
         this.securityContextRepository = securityContextRepository;
-        this.csrfTokenRepository = csrfTokenRepository;
     }
 
     @PostMapping("/signup")
     public ResponseEntity<AuthenticatedUserResponse> signup(
-            @Valid @RequestBody AuthCredentialsRequest request) {
+            @Valid @RequestBody AuthCredentialsRequest request,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
         UserAccount account = accountService.signup(request.email(), request.password());
+        authenticateAndStore(
+                request.email(), request.password(), servletRequest, servletResponse);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(AuthenticatedUserResponse.from(account));
     }
@@ -62,11 +62,22 @@ public class AuthController {
             @Valid @RequestBody AuthCredentialsRequest request,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
+        Authentication authentication = authenticateAndStore(
+                request.email(), request.password(), servletRequest, servletResponse);
+        return AuthenticatedUserResponse.from(
+                (AuthenticatedUserPrincipal) authentication.getPrincipal());
+    }
+
+    private Authentication authenticateAndStore(
+            String email,
+            String password,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(
-                            request.email(), request.password()));
+                            email, password));
         } catch (AuthenticationException exception) {
             throw new InvalidCredentialsException();
         }
@@ -77,8 +88,7 @@ public class AuthController {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, servletRequest, servletResponse);
-        return AuthenticatedUserResponse.from(
-                (AuthenticatedUserPrincipal) authentication.getPrincipal());
+        return authentication;
     }
 
     @PostMapping("/logout")
@@ -97,10 +107,7 @@ public class AuthController {
     }
 
     @GetMapping("/csrf")
-    public CsrfTokenResponse csrf(
-            HttpServletRequest request, HttpServletResponse response) {
-        CsrfToken csrfToken = csrfTokenRepository.generateToken(request);
-        csrfTokenRepository.saveToken(csrfToken, request, response);
+    public CsrfTokenResponse csrf(CsrfToken csrfToken) {
         return new CsrfTokenResponse(
                 csrfToken.getHeaderName(),
                 csrfToken.getParameterName(),
