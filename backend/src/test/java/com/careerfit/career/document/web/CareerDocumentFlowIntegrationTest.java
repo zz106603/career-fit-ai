@@ -254,6 +254,11 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
         UUID analysisId = UUID.fromString(com.jayway.jsonpath.JsonPath.read(
                 created.getResponse().getContentAsString(), "$.documentAnalysisId"));
 
+        requestExtraction(documentId, DevelopmentUsers.USER_A)
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.analysisId").value(analysisId.toString()))
+                .andExpect(jsonPath("$.jobExecutionId").doesNotExist());
+
         requestAlternativeText(documentId, DevelopmentUsers.USER_A, "  first\nsecond  ", true)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.documentAnalysisId").value(analysisId.toString()));
@@ -310,9 +315,101 @@ class CareerDocumentFlowIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    @DisplayName("문서 분석 이력을 최신순으로 조회하고 상태별 다음 행동을 제공한다")
+    void 문서_분석_이력과_다음_행동을_조회한다() throws Exception {
+        UUID documentId = uploadPdf(pdf("career"), DevelopmentUsers.USER_A);
+        requestExtraction(documentId, DevelopmentUsers.USER_A).andExpect(status().isAccepted());
+        JobExecution extraction = jobExecutionService.findQueued(10).getFirst();
+        assertThat(jobWorker.execute(extraction)).isTrue();
+        assertThat(jobWorker.execute(jobExecutionService.findQueued(10).getFirst())).isTrue();
+
+        mockMvc.perform(get("/api/career-documents/{id}/analyses", documentId)
+                        .with(authentication(authenticationOf(DevelopmentUsers.USER_A))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].documentId").value(documentId.toString()))
+                .andExpect(jsonPath("$[0].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$[0].nextAction").value("REVIEW_CANDIDATES"))
+                .andExpect(jsonPath("$[0].progress").doesNotExist())
+                .andExpect(jsonPath("$[0].estimatedCompletionAt").doesNotExist());
+
+        mockMvc.perform(get("/api/career-documents/{id}/analyses", documentId)
+                        .with(authentication(authenticationOf(DevelopmentUsers.USER_B))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CAREER_DOCUMENT_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("PDF 전체 재실행은 과거 분석을 보존하고 새 활성 실행 하나만 만든다")
+    void PDF_전체_재실행은_새_분석을_하나만_만든다() throws Exception {
+        UUID documentId = uploadPdf(pdf("career"), DevelopmentUsers.USER_A);
+        requestExtraction(documentId, DevelopmentUsers.USER_A).andExpect(status().isAccepted());
+        assertThat(jobWorker.execute(jobExecutionService.findQueued(10).getFirst())).isTrue();
+        assertThat(jobWorker.execute(jobExecutionService.findQueued(10).getFirst())).isTrue();
+
+        MvcResult first = requestRerun(documentId, DevelopmentUsers.USER_A)
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.inputKind").value("PDF_TEXT"))
+                .andExpect(jsonPath("$.status").value("QUEUED"))
+                .andExpect(jsonPath("$.nextAction").value("WAIT"))
+                .andReturn();
+        String rerunAnalysisId = com.jayway.jsonpath.JsonPath.read(
+                first.getResponse().getContentAsString(), "$.documentAnalysisId");
+        requestRerun(documentId, DevelopmentUsers.USER_A)
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.documentAnalysisId").value(rerunAnalysisId));
+
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_document_analysis "
+                        + "WHERE document_id = :documentId")
+                .param("documentId", documentId).query(Integer.class).single()).isEqualTo(2);
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_document_analysis "
+                        + "WHERE document_id = :documentId AND status IN ('QUEUED', 'PROCESSING')")
+                .param("documentId", documentId).query(Integer.class).single()).isEqualTo(1);
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM career_extraction_candidate "
+                        + "WHERE document_analysis_id <> :rerunAnalysisId")
+                .param("rerunAnalysisId", UUID.fromString(rerunAnalysisId))
+                .query(Integer.class).single()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("대체 텍스트 전체 재실행은 최신 Snapshot을 복사하고 PDF 추출을 생략한다")
+    void 대체_텍스트_전체_재실행은_Snapshot을_복사한다() throws Exception {
+        UUID documentId = uploadPdf(pdf(), DevelopmentUsers.USER_A);
+        requestExtraction(documentId, DevelopmentUsers.USER_A).andExpect(status().isAccepted());
+        assertThat(jobWorker.execute(jobExecutionService.findQueued(10).getFirst())).isTrue();
+        requestAlternativeText(documentId, DevelopmentUsers.USER_A, "saved career", true)
+                .andExpect(status().isCreated());
+        assertThat(jobWorker.execute(jobExecutionService.findQueued(10).getFirst())).isTrue();
+
+        MvcResult rerun = requestRerun(documentId, DevelopmentUsers.USER_A)
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.inputKind").value("PASTED_TEXT"))
+                .andExpect(jsonPath("$.jobExecutionId").doesNotExist())
+                .andExpect(jsonPath("$.status").value("PROCESSING"))
+                .andReturn();
+        UUID analysisId = UUID.fromString(com.jayway.jsonpath.JsonPath.read(
+                rerun.getResponse().getContentAsString(), "$.documentAnalysisId"));
+
+        assertThat(jdbcClient.sql("SELECT alternative_text FROM career_document_alternative_text "
+                        + "WHERE document_analysis_id = :analysisId")
+                .param("analysisId", analysisId).query(String.class).single())
+                .isEqualTo("saved career");
+        assertThat(jobExecutionService.findQueued(10))
+                .singleElement()
+                .satisfies(job -> assertThat(job.type().name())
+                        .isEqualTo("CAREER_CANDIDATE_EXTRACTION"));
+    }
+
     private org.springframework.test.web.servlet.ResultActions requestExtraction(
             UUID documentId, CurrentUser user) throws Exception {
         return mockMvc.perform(post("/api/career-documents/{id}/extractions", documentId)
+                .with(authentication(authenticationOf(user)))
+                .with(csrf()));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions requestRerun(
+            UUID documentId, CurrentUser user) throws Exception {
+        return mockMvc.perform(post("/api/career-documents/{id}/analyses/reruns", documentId)
                 .with(authentication(authenticationOf(user)))
                 .with(csrf()));
     }
