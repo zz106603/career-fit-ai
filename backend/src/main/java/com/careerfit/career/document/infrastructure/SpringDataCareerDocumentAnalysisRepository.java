@@ -12,6 +12,10 @@ interface SpringDataCareerDocumentAnalysisRepository extends JpaRepository<Caree
     Optional<CareerDocumentAnalysisEntity> findFirstByUserIdAndDocumentIdAndInputVersionAndStatusIn(
             UUID userId, UUID documentId, String inputVersion,
             Collection<CareerDocumentAnalysisStatus> statuses);
+    Optional<CareerDocumentAnalysisEntity> findFirstByUserIdAndDocumentIdAndStatusInOrderByCreatedAtDesc(
+            UUID userId, UUID documentId, Collection<CareerDocumentAnalysisStatus> statuses);
     Optional<CareerDocumentAnalysisEntity> findFirstByUserIdAndDocumentIdAndInputKindOrderByCreatedAtDesc(
             UUID userId, UUID documentId, CareerDocumentInputKind inputKind);
+    java.util.List<CareerDocumentAnalysisEntity> findByUserIdAndDocumentIdOrderByCreatedAtDesc(
+            UUID userId, UUID documentId);
 }

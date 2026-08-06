@@ -33,11 +33,22 @@ public class JpaCareerDocumentAlternativeTextRepository
     public Optional<CareerDocumentAlternativeText> find(
             UserId userId, CareerDocumentAnalysisId analysisId) {
         return repository.findByAnalysisIdAndUserId(analysisId.value(), userId.value())
-                .map(entity -> new CareerDocumentAlternativeText(
-                        new CareerDocumentAnalysisId(entity.analysisId()),
-                        new CareerDocumentId(entity.documentId()),
-                        new UserId(entity.userId()),
-                        entity.text(), entity.textLength(), entity.checksumSha256(),
-                        entity.createdAt()));
+                .map(this::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CareerDocumentAlternativeText> findLatest(
+            UserId userId, CareerDocumentId documentId) {
+        return repository.findFirstByUserIdAndDocumentIdOrderByCreatedAtDesc(
+                userId.value(), documentId.value()).map(this::toDomain);
+    }
+
+    private CareerDocumentAlternativeText toDomain(CareerDocumentAlternativeTextEntity entity) {
+        return new CareerDocumentAlternativeText(
+                new CareerDocumentAnalysisId(entity.analysisId()),
+                new CareerDocumentId(entity.documentId()),
+                new UserId(entity.userId()),
+                entity.text(), entity.textLength(), entity.checksumSha256(), entity.createdAt());
     }
 }

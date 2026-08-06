@@ -18,8 +18,12 @@ public interface CareerDocumentAnalysisRepository {
     Optional<CareerDocumentAnalysis> findActive(
             UserId userId, CareerDocumentId documentId, String inputVersion);
 
+    Optional<CareerDocumentAnalysis> findActive(UserId userId, CareerDocumentId documentId);
+
     Optional<CareerDocumentAnalysis> findLatest(
             UserId userId, CareerDocumentId documentId, CareerDocumentInputKind inputKind);
+
+    List<CareerDocumentAnalysis> findAll(UserId userId, CareerDocumentId documentId);
 
     void savePages(List<CareerDocumentPage> pages);
 

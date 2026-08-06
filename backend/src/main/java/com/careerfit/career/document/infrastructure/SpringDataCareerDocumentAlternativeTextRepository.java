@@ -9,4 +9,7 @@ interface SpringDataCareerDocumentAlternativeTextRepository
 
     Optional<CareerDocumentAlternativeTextEntity> findByAnalysisIdAndUserId(
             UUID analysisId, UUID userId);
+
+    Optional<CareerDocumentAlternativeTextEntity> findFirstByUserIdAndDocumentIdOrderByCreatedAtDesc(
+            UUID userId, UUID documentId);
 }

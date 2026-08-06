@@ -30,10 +30,20 @@ public class JpaCareerDocumentAnalysisRepository implements CareerDocumentAnalys
                 userId.value(), documentId.value(), inputVersion, ACTIVE).map(this::toDomain);
     }
     @Override @Transactional(readOnly=true)
+    public Optional<CareerDocumentAnalysis> findActive(UserId userId, CareerDocumentId documentId) {
+        return analyses.findFirstByUserIdAndDocumentIdAndStatusInOrderByCreatedAtDesc(
+                userId.value(), documentId.value(), ACTIVE).map(this::toDomain);
+    }
+    @Override @Transactional(readOnly=true)
     public Optional<CareerDocumentAnalysis> findLatest(
             UserId userId, CareerDocumentId documentId, CareerDocumentInputKind inputKind) {
         return analyses.findFirstByUserIdAndDocumentIdAndInputKindOrderByCreatedAtDesc(
                 userId.value(), documentId.value(), inputKind).map(this::toDomain);
+    }
+    @Override @Transactional(readOnly=true)
+    public List<CareerDocumentAnalysis> findAll(UserId userId, CareerDocumentId documentId) {
+        return analyses.findByUserIdAndDocumentIdOrderByCreatedAtDesc(
+                userId.value(), documentId.value()).stream().map(this::toDomain).toList();
     }
     @Override @Transactional
     public void savePages(List<CareerDocumentPage> values) {
