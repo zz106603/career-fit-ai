@@ -63,7 +63,7 @@ public class CareerDocumentAlternativeTextService {
         requireAlternativeTextAllowed(userId, documentId);
 
         String inputVersion = normalized.checksum() + ":" + WORKFLOW_VERSION;
-        return analyses.findActive(userId, documentId, inputVersion)
+        return analyses.findActive(userId, documentId)
                 .map(analysis -> existingResult(userId, analysis))
                 .orElseGet(() -> save(document, normalized, inputVersion));
     }

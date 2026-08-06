@@ -44,7 +44,7 @@ public class CareerDocumentExtractionService {
         CareerDocument document = documents.findActiveForUpdate(userId, documentId)
                 .orElseThrow(CareerDocumentNotFoundException::new);
         String inputVersion = document.checksumSha256() + ":" + WORKFLOW_VERSION;
-        return analyses.findActive(userId, documentId, inputVersion)
+        return analyses.findActive(userId, documentId)
                 .map(this::result)
                 .orElseGet(() -> create(document, inputVersion));
     }
