@@ -9,6 +9,8 @@ AI 취업 지원 실행 플랫폼의 Java 21·Spring Boot 기반 모듈형 모�
 - Java 21
 - Gradle Wrapper 사용
 - Docker Desktop 또는 Docker Engine과 Docker Compose
+- Node.js 24
+- pnpm 10
 
 ## 개발 DB
 
@@ -66,6 +68,21 @@ export DB_PASSWORD='<.env에 설정한 값>'
 
 `local` 프로필에서 `DB_PASSWORD`가 누락되면 애플리케이션은 기동에 실패합니다.
 실제 비밀번호·토큰·API 키는 설정 파일이나 명령행 인자로 커밋하지 않습니다.
+
+### Frontend 실행
+
+Spring Boot를 `http://localhost:8080`에서 실행한 뒤 별도 터미널에서 Web Client를
+실행합니다.
+
+```powershell
+Set-Location frontend
+pnpm install
+pnpm dev
+```
+
+브라우저에서 `http://localhost:5173`으로 접속합니다. Vite 개발 서버는 `/api`
+요청을 Spring Boot로 proxy합니다. 자세한 검증 명령과 디렉터리 구조는
+[`frontend/README.md`](frontend/README.md)를 참고합니다.
 
 ## AI Provider
 
