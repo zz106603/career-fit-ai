@@ -1,15 +1,8 @@
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { PropsWithChildren } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { useState, type PropsWithChildren } from 'react'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
-  },
-})
+import { createQueryClient } from './queryClient'
 
 const theme = createTheme({
   palette: {
@@ -34,6 +27,8 @@ const theme = createTheme({
 })
 
 export function AppProviders({ children }: PropsWithChildren) {
+  const [queryClient] = useState(createQueryClient)
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
