@@ -201,7 +201,7 @@ pgvector 저장·유사도 검색처럼 PostgreSQL 전용 SQL이 핵심인 경�
 
 자체 이메일·비밀번호 계정과 Spring Security 서버 세션을 사용합니다. 상태 변경
 요청 전에 `GET /api/auth/csrf`로 토큰을 받고, 회원가입·로그인·로그아웃 요청에
-`X-XSRF-TOKEN` 헤더와 쿠키를 함께 전달해야 합니다.
+응답의 `headerName`이 지정한 헤더와 세션 쿠키를 함께 전달해야 합니다.
 
 - `POST /api/auth/signup`
 - `POST /api/auth/login`

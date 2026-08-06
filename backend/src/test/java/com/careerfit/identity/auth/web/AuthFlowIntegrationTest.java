@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.careerfit.PostgresIntegrationTest;
+import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,12 +54,13 @@ class AuthFlowIntegrationTest extends PostgresIntegrationTest {
     @Test
     @DisplayName("회원가입은 이메일을 정규화하고 비밀번호 해시만 저장한다")
     void 회원가입은_이메일을_정규화하고_비밀번호_해시만_저장한다() throws Exception {
-        mockMvc.perform(post("/api/auth/signup")
+        MvcResult signup = mockMvc.perform(post("/api/auth/signup")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(credentials("  MEMBER@Example.COM  ", PASSWORD)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value(EMAIL));
+                .andExpect(jsonPath("$.email").value(EMAIL))
+                .andReturn();
 
         String storedHash = jdbcClient
                 .sql("SELECT password_hash FROM user_account WHERE email = :email")
@@ -68,6 +69,12 @@ class AuthFlowIntegrationTest extends PostgresIntegrationTest {
                 .single();
         assertThat(storedHash).isNotEqualTo(PASSWORD);
         assertThat(passwordEncoder.matches(PASSWORD, storedHash)).isTrue();
+
+        MockHttpSession authenticatedSession =
+                (MockHttpSession) signup.getRequest().getSession(false);
+        mockMvc.perform(get("/api/auth/me").session(authenticatedSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(EMAIL));
     }
 
     @Test
@@ -176,9 +183,29 @@ class AuthFlowIntegrationTest extends PostgresIntegrationTest {
     void CSRF_조회_API는_토큰을_제공한다() throws Exception {
         mockMvc.perform(get("/api/auth/csrf"))
                 .andExpect(status().isOk())
-                .andExpect(cookie().exists("XSRF-TOKEN"))
-                .andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"))
+                .andExpect(jsonPath("$.headerName").value("X-CSRF-TOKEN"))
                 .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("CSRF 조회 응답의 세션과 헤더 토큰으로 상태 변경 요청을 수행할 수 있다")
+    void CSRF_조회_응답으로_상태_변경_요청을_수행할_수_있다() throws Exception {
+        MvcResult csrfResult = mockMvc.perform(get("/api/auth/csrf"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String responseBody = csrfResult.getResponse().getContentAsString();
+        String headerName = JsonPath.read(responseBody, "$.headerName");
+        String token = JsonPath.read(responseBody, "$.token");
+        MockHttpSession csrfSession =
+                (MockHttpSession) csrfResult.getRequest().getSession(false);
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .session(csrfSession)
+                        .header(headerName, token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(credentials("invalid", PASSWORD)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
 
     private void signup() throws Exception {

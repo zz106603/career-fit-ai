@@ -85,4 +85,35 @@ describe('apiRequest', () => {
     )
     expect(requestSent).toBe(false)
   })
+
+  it('CSRF 토큰이 만료된 변경 요청은 새 토큰으로 한 번 재시도한다', async () => {
+    let csrfCalls = 0
+    let requestCalls = 0
+    server.use(
+      http.get('/api/auth/csrf', () => {
+        csrfCalls += 1
+        return HttpResponse.json({
+          headerName: 'X-XSRF-TOKEN',
+          parameterName: '_csrf',
+          token: `csrf-${csrfCalls}`,
+        })
+      }),
+      http.post('/api/example', ({ request }) => {
+        requestCalls += 1
+        if (request.headers.get('X-XSRF-TOKEN') === 'csrf-1') {
+          return HttpResponse.json(
+            { code: 'ACCESS_DENIED', message: '토큰 만료' },
+            { status: 403 },
+          )
+        }
+        expect(request.headers.get('X-XSRF-TOKEN')).toBe('csrf-2')
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    await apiRequest<void>('/api/example', { method: 'POST' })
+
+    expect(csrfCalls).toBe(2)
+    expect(requestCalls).toBe(2)
+  })
 })

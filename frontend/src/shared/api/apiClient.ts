@@ -41,17 +41,26 @@ export async function apiRequest<T>(
     }
   }
 
-  let response: Response
-  try {
-    response = await fetch(path, {
+  let response = await sendRequest(path, {
+    ...requestOptions,
+    method,
+    body,
+    headers,
+    credentials: 'same-origin',
+  })
+
+  // 서버 재시작 등으로 메모리 토큰과 CSRF 쿠키가 어긋나면 새 토큰으로 한 번만 복구한다.
+  if (response.status === 403 && !SAFE_METHODS.has(method)) {
+    clearCsrfToken()
+    const csrf = await getCsrfToken()
+    headers.set(csrf.headerName, csrf.token)
+    response = await sendRequest(path, {
       ...requestOptions,
       method,
       body,
       headers,
       credentials: 'same-origin',
     })
-  } catch (error) {
-    throw ApiError.network(error)
   }
 
   if (!response.ok) {
@@ -63,6 +72,14 @@ export async function apiRequest<T>(
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) return undefined as T
   return (await response.json()) as T
+}
+
+async function sendRequest(path: string, options: RequestInit) {
+  try {
+    return await fetch(path, options)
+  } catch (error) {
+    throw ApiError.network(error)
+  }
 }
 
 async function toApiError(response: Response): Promise<ApiError> {
