@@ -9,6 +9,8 @@ public record CareerDocumentExtractionResponse(
 
     static CareerDocumentExtractionResponse from(CareerDocumentExtractionResult result) {
         return new CareerDocumentExtractionResponse(
-                result.analysisId().value(), result.jobExecutionId().value(), result.status());
+                result.analysisId().value(),
+                result.jobExecutionId() == null ? null : result.jobExecutionId().value(),
+                result.status());
     }
 }

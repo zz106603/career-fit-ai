@@ -1,6 +1,7 @@
 package com.careerfit.career.document.web;
 
 import com.careerfit.career.document.application.CareerDocumentContent;
+import com.careerfit.career.document.application.CareerDocumentAnalysisService;
 import com.careerfit.career.document.application.CareerDocumentAlternativeTextResult;
 import com.careerfit.career.document.application.CareerDocumentAlternativeTextService;
 import com.careerfit.career.document.application.CareerDocumentExtractionService;
@@ -12,6 +13,7 @@ import com.careerfit.career.document.domain.CareerDocument;
 import com.careerfit.career.document.domain.CareerDocumentId;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -34,14 +36,30 @@ public class CareerDocumentController {
     private final CareerDocumentService service;
     private final CareerDocumentExtractionService extractionService;
     private final CareerDocumentAlternativeTextService alternativeTextService;
+    private final CareerDocumentAnalysisService analysisService;
 
     public CareerDocumentController(
             CareerDocumentService service,
             CareerDocumentExtractionService extractionService,
-            CareerDocumentAlternativeTextService alternativeTextService) {
+            CareerDocumentAlternativeTextService alternativeTextService,
+            CareerDocumentAnalysisService analysisService) {
         this.service = service;
         this.extractionService = extractionService;
         this.alternativeTextService = alternativeTextService;
+        this.analysisService = analysisService;
+    }
+
+    @GetMapping("/{documentId}/analyses")
+    public List<CareerDocumentAnalysisResponse> analyses(@PathVariable UUID documentId) {
+        return analysisService.findAll(new CareerDocumentId(documentId)).stream()
+                .map(CareerDocumentAnalysisResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/{documentId}/analyses/reruns")
+    public ResponseEntity<CareerDocumentAnalysisResponse> rerun(@PathVariable UUID documentId) {
+        return ResponseEntity.accepted().body(CareerDocumentAnalysisResponse.from(
+                analysisService.rerun(new CareerDocumentId(documentId))));
     }
 
     @PostMapping("/{documentId}/alternative-texts")
