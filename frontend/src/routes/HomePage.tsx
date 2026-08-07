@@ -1,5 +1,5 @@
 import { Button, Chip, Stack, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { useCurrentUser, useLogout } from '../features/auth'
 import { PageContainer } from '../shared/ui/PageContainer'
@@ -32,7 +32,11 @@ export function HomePage() {
           {currentUser.data?.email} 계정으로 로그인했습니다.
         </Typography>
         <Stack direction="row" spacing={2}>
-          <Button variant="contained" disabled>
+          <Button
+            component={Link}
+            to="/career-documents/new"
+            variant="contained"
+          >
             경력 분석 시작하기
           </Button>
           <Button
