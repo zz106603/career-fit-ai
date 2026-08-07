@@ -4,6 +4,7 @@ import { GuestOnlyRoute, ProtectedRoute } from './routes'
 import { LoginPage } from '../routes/LoginPage'
 import { CareerDocumentAnalysisPage } from '../routes/CareerDocumentAnalysisPage'
 import { CareerDocumentUploadPage } from '../routes/CareerDocumentUploadPage'
+import { CareerCandidateReviewPage } from '../routes/CareerCandidateReviewPage'
 import { HomePage } from '../routes/HomePage'
 import { NotFoundPage } from '../routes/NotFoundPage'
 import { SignupPage } from '../routes/SignupPage'
@@ -21,6 +22,10 @@ export function createAppRouter() {
         {
           path: '/career-documents/:documentId',
           element: <CareerDocumentAnalysisPage />,
+        },
+        {
+          path: '/career-documents/:documentId/analyses/:analysisId/candidates',
+          element: <CareerCandidateReviewPage />,
         },
       ],
     },
