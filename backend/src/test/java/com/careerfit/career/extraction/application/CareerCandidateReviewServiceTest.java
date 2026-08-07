@@ -129,6 +129,16 @@ class CareerCandidateReviewServiceTest {
         @Override public boolean exists(UserId userId, CareerDocumentAnalysisId analysisId) { return false; }
 
         @Override
+        public List<CareerExtractionCandidate> findAll(
+                UserId userId, CareerDocumentAnalysisId analysisId) {
+            return candidates.values().stream()
+                    .filter(candidate -> candidate.userId().equals(userId)
+                            && candidate.analysisId().equals(analysisId)
+                            && candidate.status() != CareerExtractionCandidateStatus.REJECTED)
+                    .toList();
+        }
+
+        @Override
         public void saveAll(List<CareerExtractionCandidate> values, List<ExperienceEvidence> evidenceValues) {
             values.forEach(value -> candidates.put(value.id(), value));
             evidences.addAll(evidenceValues);
@@ -144,6 +154,12 @@ class CareerCandidateReviewServiceTest {
         public List<ExperienceEvidence> findEvidences(UserId userId, List<UUID> candidateIds) {
             return evidences.stream().filter(evidence -> evidence.userId().equals(userId)
                     && candidateIds.contains(evidence.candidateId())).toList();
+        }
+
+        @Override
+        public List<CareerCandidateEvidenceView> findEvidenceViews(
+                UserId userId, List<UUID> candidateIds) {
+            return List.of();
         }
     }
 }

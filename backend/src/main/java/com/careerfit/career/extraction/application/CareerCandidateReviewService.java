@@ -12,6 +12,10 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.careerfit.career.document.domain.CareerDocumentAnalysisId;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 /** 사용자가 AI 후보를 확정 전에 수정·거절·병합·분리하도록 조정하는 검토 유스케이스다. */
@@ -24,6 +28,21 @@ public class CareerCandidateReviewService {
             CurrentUserProvider currentUserProvider) {
         this.repository = repository;
         this.currentUserProvider = currentUserProvider;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CareerCandidateReviewView> findAll(UUID analysisId) {
+        UserId userId = currentUserProvider.currentUserId();
+        List<CareerExtractionCandidate> candidates =
+                repository.findAll(userId, new CareerDocumentAnalysisId(analysisId));
+        Map<UUID, List<CareerCandidateEvidenceView>> evidences = repository
+                .findEvidenceViews(userId, candidates.stream().map(CareerExtractionCandidate::id).toList())
+                .stream()
+                .collect(Collectors.groupingBy(CareerCandidateEvidenceView::candidateId));
+        return candidates.stream()
+                .map(candidate -> new CareerCandidateReviewView(
+                        candidate, evidences.getOrDefault(candidate.id(), List.of())))
+                .toList();
     }
 
     @Transactional
