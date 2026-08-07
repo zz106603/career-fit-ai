@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface CareerExtractionCandidateRepository {
     boolean exists(UserId userId, CareerDocumentAnalysisId analysisId);
     void saveAll(List<CareerExtractionCandidate> candidates, List<ExperienceEvidence> evidences);
+    List<CareerExtractionCandidate> findAll(UserId userId, CareerDocumentAnalysisId analysisId);
     List<CareerExtractionCandidate> findAllForUpdate(UserId userId, List<UUID> candidateIds);
     List<ExperienceEvidence> findEvidences(UserId userId, List<UUID> candidateIds);
+    List<CareerCandidateEvidenceView> findEvidenceViews(UserId userId, List<UUID> candidateIds);
 }

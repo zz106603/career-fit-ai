@@ -2,6 +2,7 @@ package com.careerfit.career.extraction.infrastructure;
 
 import com.careerfit.career.document.domain.CareerDocumentAnalysisId;
 import com.careerfit.career.extraction.application.CareerExtractionCandidateRepository;
+import com.careerfit.career.extraction.application.CareerCandidateEvidenceView;
 import com.careerfit.career.extraction.domain.CareerExtractionCandidate;
 import com.careerfit.career.extraction.domain.ExperienceEvidence;
 import com.careerfit.identity.UserId;
@@ -46,6 +47,18 @@ public class JpaCareerExtractionCandidateRepository implements CareerExtractionC
     }
 
     @Override
+    public List<CareerExtractionCandidate> findAll(
+            UserId userId, CareerDocumentAnalysisId analysisId) {
+        return candidates
+                .findAllByUserIdAndAnalysisIdAndStatusNotOrderByCreatedAtAsc(
+                        userId.value(), analysisId.value(),
+                        com.careerfit.career.extraction.domain.CareerExtractionCandidateStatus.REJECTED)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<ExperienceEvidence> findEvidences(UserId userId, List<UUID> candidateIds) {
         return evidences.findAllByUserIdAndCandidateIdIn(userId.value(), candidateIds).stream()
                 .map(v -> new ExperienceEvidence(v.id(), v.candidateId(),
@@ -53,5 +66,20 @@ public class JpaCareerExtractionCandidateRepository implements CareerExtractionC
                         new com.careerfit.career.document.domain.CareerDocumentId(v.documentId()),
                         new UserId(v.userId()), v.pageNumber(), v.excerpt()))
                 .toList();
+    }
+
+
+    @Override
+    public List<CareerCandidateEvidenceView> findEvidenceViews(
+            UserId userId, List<UUID> candidateIds) {
+        if (candidateIds.isEmpty()) return List.of();
+        return evidences.findReviewViews(userId.value(), candidateIds);
+    }
+
+    private CareerExtractionCandidate toDomain(CareerExtractionCandidateEntity value) {
+        return new CareerExtractionCandidate(value.id(), new CareerDocumentAnalysisId(value.analysisId()),
+                new UserId(value.userId()), value.candidateType(), value.organization(), value.role(),
+                value.period(), value.description(), value.status(), value.revisionNo(), value.model(),
+                value.promptVersion(), value.schemaVersion(), value.aiCallExecutionId(), value.createdAt());
     }
 }
