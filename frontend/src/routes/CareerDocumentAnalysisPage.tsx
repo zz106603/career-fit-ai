@@ -134,9 +134,13 @@ function CurrentAnalysis({
         </Button>
       )}
       {analysis.nextAction === 'REVIEW_CANDIDATES' && (
-        <Alert severity="success">
-          경력 후보 검토 단계로 이동할 준비가 됐습니다.
-        </Alert>
+        <Button
+          component={Link}
+          to={`/career-documents/${documentId}/analyses/${analysis.documentAnalysisId}/candidates`}
+          variant="contained"
+        >
+          경력 후보 검토하기
+        </Button>
       )}
     </Stack>
   )
