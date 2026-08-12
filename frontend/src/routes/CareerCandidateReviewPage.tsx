@@ -3,12 +3,14 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Stack,
   TextField,
   Typography,
@@ -21,7 +23,9 @@ import {
   type CareerCandidateContent,
   useCareerCandidates,
   useEditCareerCandidate,
+  useMergeCareerCandidates,
   useRejectCareerCandidate,
+  useSplitCareerCandidate,
 } from '../features/career-candidate'
 import { useCareerDocumentAnalyses } from '../features/career-document'
 import { getApiErrorMessage } from '../shared/api/getApiErrorMessage'
@@ -34,6 +38,8 @@ export function CareerCandidateReviewPage() {
   const analysis = analyses.data?.find(
     (item) => item.documentAnalysisId === analysisId,
   )
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [merging, setMerging] = useState(false)
 
   if (analyses.isPending || candidates.isPending) {
     return (
@@ -69,13 +75,48 @@ export function CareerCandidateReviewPage() {
         {candidates.data.length === 0 ? (
           <Alert severity="info">검토할 경력 후보가 없습니다.</Alert>
         ) : (
-          candidates.data.map((candidate) => (
-            <CandidateCard
-              key={candidate.candidateId}
+          <>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Button
+                variant="contained"
+                disabled={selectedIds.length < 2}
+                onClick={() => setMerging(true)}
+              >
+                선택 후보 병합 ({selectedIds.length})
+              </Button>
+              <Typography color="text.secondary">
+                같은 경력을 나타내는 후보를 2개 이상 선택하세요.
+              </Typography>
+            </Stack>
+            {candidates.data.map((candidate) => (
+              <CandidateCard
+                key={candidate.candidateId}
+                analysisId={analysisId}
+                candidate={candidate}
+                selected={selectedIds.includes(candidate.candidateId)}
+                onSelectedChange={(selected) =>
+                  setSelectedIds((current) =>
+                    selected
+                      ? [...current, candidate.candidateId]
+                      : current.filter((id) => id !== candidate.candidateId),
+                  )
+                }
+              />
+            ))}
+            <MergeDialog
+              key={selectedIds.join('-')}
               analysisId={analysisId}
-              candidate={candidate}
+              candidates={candidates.data.filter((candidate) =>
+                selectedIds.includes(candidate.candidateId),
+              )}
+              open={merging}
+              onClose={() => setMerging(false)}
+              onMerged={() => {
+                setMerging(false)
+                setSelectedIds([])
+              }}
             />
-          ))
+          </>
         )}
         <Button
           component={Link}
@@ -92,12 +133,17 @@ export function CareerCandidateReviewPage() {
 function CandidateCard({
   analysisId,
   candidate,
+  selected,
+  onSelectedChange,
 }: {
   analysisId: string
   candidate: CareerCandidate
+  selected: boolean
+  onSelectedChange: (selected: boolean) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [splitting, setSplitting] = useState(false)
   const [content, setContent] = useState(() => toContent(candidate))
   const edit = useEditCareerCandidate(analysisId)
   const reject = useRejectCareerCandidate(analysisId)
@@ -115,6 +161,17 @@ function CandidateCard({
       <CardContent>
         <Stack spacing={2}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            {editable && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={selected}
+                    onChange={(event) => onSelectedChange(event.target.checked)}
+                  />
+                }
+                label="병합 선택"
+              />
+            )}
             <Chip label={statusLabel(candidate.status)} />
             <Typography color="text.secondary">
               revision {candidate.revisionNo} · 미확정
@@ -154,9 +211,15 @@ function CandidateCard({
                 </Button>
               )}
               {!editing && (
-                <Button color="error" onClick={() => setConfirmingDelete(true)}>
-                  삭제
-                </Button>
+                <>
+                  <Button onClick={() => setSplitting(true)}>분리</Button>
+                  <Button
+                    color="error"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    삭제
+                  </Button>
+                </>
               )}
             </Stack>
           )}
@@ -177,7 +240,10 @@ function CandidateCard({
             disabled={reject.isPending}
             onClick={() =>
               reject.mutate(candidate.candidateId, {
-                onSuccess: () => setConfirmingDelete(false),
+                onSuccess: () => {
+                  setConfirmingDelete(false)
+                  onSelectedChange(false)
+                },
               })
             }
           >
@@ -185,6 +251,16 @@ function CandidateCard({
           </Button>
         </DialogActions>
       </Dialog>
+      <SplitDialog
+        analysisId={analysisId}
+        candidate={candidate}
+        open={splitting}
+        onClose={() => setSplitting(false)}
+        onSplit={() => {
+          setSplitting(false)
+          onSelectedChange(false)
+        }}
+      />
     </Card>
   )
 }
@@ -265,6 +341,208 @@ function EvidenceList({ candidate }: { candidate: CareerCandidate }) {
   )
 }
 
+function MergeDialog({
+  analysisId,
+  candidates,
+  open,
+  onClose,
+  onMerged,
+}: {
+  analysisId: string
+  candidates: CareerCandidate[]
+  open: boolean
+  onClose: () => void
+  onMerged: () => void
+}) {
+  const [content, setContent] = useState(() => mergeContent(candidates))
+  const merge = useMergeCareerCandidates(analysisId)
+  const valid = isValidContent(content) && candidates.length >= 2
+
+  return (
+    <Dialog
+      open={open}
+      onClose={merge.isPending ? undefined : onClose}
+      fullWidth
+    >
+      <DialogTitle>선택한 경력 후보 병합</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <Alert severity="info">
+            원본 후보 {candidates.length}개는 검토 목록에서 제외되고, 모든
+            Evidence를 가진 새 미확정 후보가 생성됩니다.
+          </Alert>
+          {merge.isError && (
+            <Alert severity="error">{getApiErrorMessage(merge.error)}</Alert>
+          )}
+          <Typography sx={{ fontWeight: 700 }}>병합 결과 미리보기</Typography>
+          <CandidateForm content={content} onChange={setContent} />
+          <CombinedEvidenceList candidates={candidates} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={merge.isPending}>
+          취소
+        </Button>
+        <Button
+          variant="contained"
+          disabled={!valid || merge.isPending}
+          onClick={() =>
+            merge.mutate(
+              {
+                candidateIds: candidates.map(
+                  (candidate) => candidate.candidateId,
+                ),
+                content,
+              },
+              { onSuccess: onMerged },
+            )
+          }
+        >
+          {merge.isPending ? '병합 중…' : '미확정 후보로 병합'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function SplitDialog({
+  analysisId,
+  candidate,
+  open,
+  onClose,
+  onSplit,
+}: {
+  analysisId: string
+  candidate: CareerCandidate
+  open: boolean
+  onClose: () => void
+  onSplit: () => void
+}) {
+  const [contents, setContents] = useState<CareerCandidateContent[]>(() => [
+    toContent(candidate),
+    toContent(candidate),
+  ])
+  const split = useSplitCareerCandidate(analysisId)
+  const valid = contents.length >= 2 && contents.every(isValidContent)
+  const change = (index: number, content: CareerCandidateContent) =>
+    setContents((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? content : item)),
+    )
+
+  return (
+    <Dialog
+      open={open}
+      onClose={split.isPending ? undefined : onClose}
+      fullWidth
+    >
+      <DialogTitle>경력 후보 분리</DialogTitle>
+      <DialogContent>
+        <Stack spacing={3} sx={{ pt: 1 }}>
+          <Alert severity="info">
+            원본 후보는 검토 목록에서 제외되고, 각 결과는 같은 Evidence를
+            추적하는 새 미확정 후보로 생성됩니다.
+          </Alert>
+          {split.isError && (
+            <Alert severity="error">{getApiErrorMessage(split.error)}</Alert>
+          )}
+          {contents.map((content, index) => (
+            <Card key={index} variant="outlined">
+              <CardContent>
+                <Stack spacing={2}>
+                  <Typography sx={{ fontWeight: 700 }}>
+                    분리 결과 {index + 1}
+                  </Typography>
+                  <CandidateForm
+                    content={content}
+                    onChange={(value) => change(index, value)}
+                  />
+                  {contents.length > 2 && (
+                    <Button
+                      color="error"
+                      onClick={() =>
+                        setContents((current) =>
+                          current.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      이 결과 제거
+                    </Button>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          ))}
+          <Button
+            variant="outlined"
+            onClick={() =>
+              setContents((current) => [
+                ...current,
+                { ...toContent(candidate), description: '' },
+              ])
+            }
+          >
+            분리 결과 추가
+          </Button>
+          <CombinedEvidenceList candidates={[candidate]} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={split.isPending}>
+          취소
+        </Button>
+        <Button
+          variant="contained"
+          disabled={!valid || split.isPending}
+          onClick={() =>
+            split.mutate(
+              { candidateId: candidate.candidateId, contents },
+              { onSuccess: onSplit },
+            )
+          }
+        >
+          {split.isPending ? '분리 중…' : '미확정 후보로 분리'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function CombinedEvidenceList({
+  candidates,
+}: {
+  candidates: CareerCandidate[]
+}) {
+  const evidences = Array.from(
+    new Map(
+      candidates
+        .flatMap((candidate) => candidate.evidences)
+        .map((evidence) => [
+          `${evidence.documentId}-${evidence.pageNumber}-${evidence.excerpt}`,
+          evidence,
+        ]),
+    ).values(),
+  )
+  return (
+    <Stack spacing={1}>
+      <Typography sx={{ fontWeight: 700 }}>
+        결과에 보존되는 원문 Evidence ({evidences.length})
+      </Typography>
+      {evidences.map((evidence) => (
+        <Stack
+          key={`${evidence.documentId}-${evidence.pageNumber}-${evidence.excerpt}`}
+        >
+          <Typography variant="body2" color="text.secondary">
+            {evidence.documentName} · {evidence.pageNumber}페이지
+          </Typography>
+          <Typography component="blockquote" sx={{ m: 0, pl: 2 }}>
+            {evidence.excerpt}
+          </Typography>
+        </Stack>
+      ))}
+    </Stack>
+  )
+}
+
 function Message({
   severity,
   text,
@@ -287,6 +565,29 @@ function toContent(candidate: CareerCandidate): CareerCandidateContent {
     period: candidate.period ?? '',
     description: candidate.description,
   }
+}
+
+function mergeContent(candidates: CareerCandidate[]): CareerCandidateContent {
+  const first = candidates[0]
+  if (!first) {
+    return {
+      candidateType: '',
+      organization: '',
+      role: '',
+      period: '',
+      description: '',
+    }
+  }
+  return {
+    ...toContent(first),
+    description: Array.from(
+      new Set(candidates.map((candidate) => candidate.description)),
+    ).join('\n'),
+  }
+}
+
+function isValidContent(content: CareerCandidateContent) {
+  return Boolean(content.candidateType.trim() && content.description.trim())
 }
 
 function statusLabel(status: CareerCandidate['status']) {
