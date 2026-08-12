@@ -45,4 +45,16 @@ export const careerCandidateApi = {
       method: 'DELETE',
     })
   },
+  merge(candidateIds: string[], content: CareerCandidateContent) {
+    return apiRequest('/api/career-candidates/merges', {
+      method: 'POST',
+      json: { candidateIds, content },
+    })
+  },
+  split(candidateId: string, contents: CareerCandidateContent[]) {
+    return apiRequest(`/api/career-candidates/${candidateId}/splits`, {
+      method: 'POST',
+      json: { contents },
+    })
+  },
 }

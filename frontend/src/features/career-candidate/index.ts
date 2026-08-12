@@ -5,5 +5,7 @@ export type {
 export {
   useCareerCandidates,
   useEditCareerCandidate,
+  useMergeCareerCandidates,
   useRejectCareerCandidate,
+  useSplitCareerCandidate,
 } from './model/careerCandidateQueries'
