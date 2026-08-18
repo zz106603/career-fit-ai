@@ -28,6 +28,10 @@ import {
   useSplitCareerCandidate,
 } from '../features/career-candidate'
 import { useCareerDocumentAnalyses } from '../features/career-document'
+import {
+  type CareerConfirmationContent,
+  useConfirmCareerCandidate,
+} from '../features/career-experience'
 import { getApiErrorMessage } from '../shared/api/getApiErrorMessage'
 import { PageContainer } from '../shared/ui/PageContainer'
 
@@ -72,6 +76,9 @@ export function CareerCandidateReviewPage() {
         <Alert severity="warning">
           AI가 만든 미확정 후보입니다. 원문 Evidence와 비교해 검토해 주세요.
         </Alert>
+        <Button component={Link} to="/career-experiences" variant="outlined">
+          확정 경력 보기
+        </Button>
         {candidates.data.length === 0 ? (
           <Alert severity="info">검토할 경력 후보가 없습니다.</Alert>
         ) : (
@@ -144,6 +151,7 @@ function CandidateCard({
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [splitting, setSplitting] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [content, setContent] = useState(() => toContent(candidate))
   const edit = useEditCareerCandidate(analysisId)
   const reject = useRejectCareerCandidate(analysisId)
@@ -214,6 +222,12 @@ function CandidateCard({
                 <>
                   <Button onClick={() => setSplitting(true)}>분리</Button>
                   <Button
+                    variant="contained"
+                    onClick={() => setConfirming(true)}
+                  >
+                    이 후보 확정
+                  </Button>
+                  <Button
                     color="error"
                     onClick={() => setConfirmingDelete(true)}
                   >
@@ -258,6 +272,16 @@ function CandidateCard({
         onClose={() => setSplitting(false)}
         onSplit={() => {
           setSplitting(false)
+          onSelectedChange(false)
+        }}
+      />
+      <ConfirmationDialog
+        analysisId={analysisId}
+        candidate={candidate}
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirmed={() => {
+          setConfirming(false)
           onSelectedChange(false)
         }}
       />
@@ -543,6 +567,104 @@ function CombinedEvidenceList({
   )
 }
 
+function ConfirmationDialog({
+  analysisId,
+  candidate,
+  open,
+  onClose,
+  onConfirmed,
+}: {
+  analysisId: string
+  candidate: CareerCandidate
+  open: boolean
+  onClose: () => void
+  onConfirmed: () => void
+}) {
+  const [content, setContent] = useState<CareerConfirmationContent>(() =>
+    toConfirmationContent(candidate),
+  )
+  const confirm = useConfirmCareerCandidate(analysisId)
+  const field = (name: keyof CareerConfirmationContent) => ({
+    value: content[name] ?? '',
+    onChange: (event: ChangeEvent<HTMLInputElement>) =>
+      setContent({ ...content, [name]: event.target.value }),
+  })
+  const valid =
+    content.title.trim() &&
+    (content.role.trim() || content.responsibilities.trim()) &&
+    (!content.startDate ||
+      !content.endDate ||
+      content.startDate <= content.endDate) &&
+    candidate.evidences.length > 0
+
+  return (
+    <Dialog
+      open={open}
+      onClose={confirm.isPending ? undefined : onClose}
+      fullWidth
+    >
+      <DialogTitle>경력 후보 최종 확인</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <Alert severity="warning">
+            아래 내용과 원문 Evidence를 확인한 뒤 직접 확정해야 분석용 경력으로
+            사용됩니다.
+          </Alert>
+          {confirm.isError && (
+            <Alert severity="error">{getApiErrorMessage(confirm.error)}</Alert>
+          )}
+          <TextField label="경험 유형" {...field('experienceType')} />
+          <TextField label="경험명·프로젝트명" required {...field('title')} />
+          <TextField label="회사·조직" {...field('organization')} />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label="시작일"
+              type="date"
+              slotProps={{ inputLabel: { shrink: true } }}
+              {...field('startDate')}
+            />
+            <TextField
+              label="종료일"
+              type="date"
+              slotProps={{ inputLabel: { shrink: true } }}
+              {...field('endDate')}
+            />
+          </Stack>
+          <TextField label="역할" {...field('role')} />
+          <TextField
+            label="수행 내용"
+            multiline
+            minRows={3}
+            {...field('responsibilities')}
+          />
+          <TextField label="문제" multiline {...field('problem')} />
+          <TextField label="행동" multiline {...field('action')} />
+          <TextField label="성과" multiline {...field('outcome')} />
+          <TextField label="기술" multiline {...field('technologies')} />
+          <CombinedEvidenceList candidates={[candidate]} />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={confirm.isPending}>
+          취소
+        </Button>
+        <Button
+          variant="contained"
+          disabled={!valid || confirm.isPending}
+          onClick={() =>
+            confirm.mutate(
+              { candidateId: candidate.candidateId, content },
+              { onSuccess: onConfirmed },
+            )
+          }
+        >
+          {confirm.isPending ? '확정 중…' : '내용과 Evidence를 확인하고 확정'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
 function Message({
   severity,
   text,
@@ -583,6 +705,24 @@ function mergeContent(candidates: CareerCandidate[]): CareerCandidateContent {
     description: Array.from(
       new Set(candidates.map((candidate) => candidate.description)),
     ).join('\n'),
+  }
+}
+
+function toConfirmationContent(
+  candidate: CareerCandidate,
+): CareerConfirmationContent {
+  return {
+    experienceType: candidate.candidateType,
+    title: candidate.role ?? candidate.organization ?? '',
+    organization: candidate.organization ?? '',
+    startDate: null,
+    endDate: null,
+    role: candidate.role ?? '',
+    responsibilities: candidate.description,
+    problem: '',
+    action: '',
+    outcome: '',
+    technologies: '',
   }
 }
 

@@ -39,6 +39,9 @@ export function HomePage() {
           >
             경력 분석 시작하기
           </Button>
+          <Button component={Link} to="/career-experiences" variant="outlined">
+            확정 경력 보기
+          </Button>
           <Button
             variant="outlined"
             onClick={handleLogout}
