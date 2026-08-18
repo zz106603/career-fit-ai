@@ -170,4 +170,44 @@ describe('경력 후보 검토 화면', () => {
 
     await waitFor(() => expect(splitCount).toBe(2))
   })
+
+  it('최종 내용과 Evidence를 확인한 후보만 명시적으로 확정한다', async () => {
+    const user = userEvent.setup()
+    let confirmedTitle = ''
+    useSuccessHandlers()
+    server.use(
+      authHandlers.csrf(),
+      http.post(
+        '/api/career-candidates/candidate-1/confirmations',
+        async ({ request }) => {
+          const body = (await request.json()) as { title: string }
+          confirmedTitle = body.title
+          return HttpResponse.json(
+            {
+              experienceId: 'experience-1',
+              versionId: 'version-1',
+              versionNo: 1,
+              sourceType: 'DOCUMENT',
+              confirmedAt: '2026-08-18T00:00:00Z',
+            },
+            { status: 201 },
+          )
+        },
+      ),
+    )
+    renderPage()
+
+    await user.click(
+      await screen.findByRole('button', { name: '이 후보 확정' }),
+    )
+    expect(screen.getByText('경력 후보 최종 확인')).toBeInTheDocument()
+    expect(screen.getAllByText('resume.pdf · 2페이지')).toHaveLength(2)
+    await user.click(
+      screen.getByRole('button', {
+        name: '내용과 Evidence를 확인하고 확정',
+      }),
+    )
+
+    await waitFor(() => expect(confirmedTitle).toBe('백엔드 개발자'))
+  })
 })
