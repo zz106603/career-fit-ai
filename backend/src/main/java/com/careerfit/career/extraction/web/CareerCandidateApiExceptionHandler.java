@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(basePackageClasses = {
-        CareerCandidateController.class, DocumentCareerConfirmationController.class})
+        CareerCandidateController.class, DocumentCareerConfirmationController.class,
+        ConfirmedCareerQueryController.class})
 public class CareerCandidateApiExceptionHandler {
     @ExceptionHandler(CareerCandidateNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(CareerCandidateNotFoundException exception) {

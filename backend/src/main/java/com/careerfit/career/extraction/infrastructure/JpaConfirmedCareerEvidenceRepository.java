@@ -1,6 +1,7 @@
 package com.careerfit.career.extraction.infrastructure;
 
 import com.careerfit.career.domain.CareerExperienceVersionId;
+import com.careerfit.career.extraction.application.ConfirmedCareerEvidenceView;
 import com.careerfit.career.extraction.application.ConfirmedCareerEvidenceRepository;
 import com.careerfit.identity.UserId;
 import java.util.List;
@@ -50,5 +51,19 @@ public class JpaConfirmedCareerEvidenceRepository implements ConfirmedCareerEvid
     @Override
     public boolean exists(UserId userId, CareerExperienceVersionId versionId) {
         return confirmedEvidences.existsByUserIdAndVersionId(userId.value(), versionId.value());
+    }
+
+    @Override
+    public List<ConfirmedCareerEvidenceView> findAll(
+            UserId userId, List<CareerExperienceVersionId> versionIds) {
+        if (versionIds.isEmpty()) return List.of();
+        return confirmedEvidences
+                .findAllByUserIdAndVersionIdIn(
+                        userId.value(), versionIds.stream().map(CareerExperienceVersionId::value).toList())
+                .stream()
+                .map(entity -> new ConfirmedCareerEvidenceView(
+                        new CareerExperienceVersionId(entity.versionId()), entity.documentId(),
+                        entity.documentName(), entity.pageNumber(), entity.excerpt()))
+                .toList();
     }
 }

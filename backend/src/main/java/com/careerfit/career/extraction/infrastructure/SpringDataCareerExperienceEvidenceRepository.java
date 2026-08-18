@@ -7,5 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface SpringDataCareerExperienceEvidenceRepository
         extends JpaRepository<CareerExperienceEvidenceEntity, UUID> {
     List<CareerExperienceEvidenceEntity> findAllByUserIdAndVersionId(UUID userId, UUID versionId);
+    List<CareerExperienceEvidenceEntity> findAllByUserIdAndVersionIdIn(
+            UUID userId, List<UUID> versionIds);
     boolean existsByUserIdAndVersionId(UUID userId, UUID versionId);
 }

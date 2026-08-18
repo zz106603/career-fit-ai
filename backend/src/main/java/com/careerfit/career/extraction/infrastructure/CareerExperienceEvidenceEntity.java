@@ -36,6 +36,7 @@ class CareerExperienceEvidenceEntity {
     }
 
     UUID candidateId() { return candidateId; }
+    UUID versionId() { return versionId; }
     UUID analysisId() { return analysisId; }
     UUID documentId() { return documentId; }
     UUID userId() { return userId; }

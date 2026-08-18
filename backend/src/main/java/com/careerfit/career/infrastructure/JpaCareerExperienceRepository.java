@@ -133,6 +133,15 @@ public class JpaCareerExperienceRepository implements CareerExperienceRepository
     }
 
     @Override
+    public List<CareerExperienceVersion> findConfirmedVersions(
+            UserId userId, CareerExperienceId experienceId) {
+        return versionRepository
+                .findConfirmedVersions(userId.value(), experienceId.value()).stream()
+                .map(this::toVersion)
+                .toList();
+    }
+
+    @Override
     public void delete(UserId userId, CareerExperienceId experienceId, Instant deletedAt) {
         versionRepository.softDeleteByExperience(
                 userId.value(), experienceId.value(), deletedAt);

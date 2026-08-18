@@ -3,6 +3,7 @@ package com.careerfit.career.extraction.application;
 import com.careerfit.career.domain.CareerExperienceVersionId;
 import com.careerfit.identity.UserId;
 import java.util.UUID;
+import java.util.List;
 
 /** 후보 Evidence를 확정 경력 버전에 귀속해 불변 provenance로 보존하는 저장소 경계다. */
 public interface ConfirmedCareerEvidenceRepository {
@@ -12,4 +13,7 @@ public interface ConfirmedCareerEvidenceRepository {
     int copyFromVersion(UserId userId, CareerExperienceVersionId source, CareerExperienceVersionId target);
     /** DOCUMENT 버전을 확정하기 전에 원문 Evidence 존재 여부를 확인한다. */
     boolean exists(UserId userId, CareerExperienceVersionId versionId);
+    /** 확정 버전 조회 화면에 표시할 문서명·페이지·발췌 Snapshot을 반환한다. */
+    List<ConfirmedCareerEvidenceView> findAll(
+            UserId userId, List<CareerExperienceVersionId> versionIds);
 }
