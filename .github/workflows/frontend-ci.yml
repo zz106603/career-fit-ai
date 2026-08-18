@@ -90,6 +90,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Make Gradle Wrapper executable
+        run: chmod +x ../backend/gradlew
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
