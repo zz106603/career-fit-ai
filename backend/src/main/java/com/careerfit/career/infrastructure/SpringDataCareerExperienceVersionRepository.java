@@ -108,6 +108,25 @@ interface SpringDataCareerExperienceVersionRepository
     List<CareerExperienceVersionEntity> findCurrentConfirmed(
             @Param("userId") UUID userId);
 
+    @Query("""
+            select version
+              from CareerExperienceVersionEntity version
+             where version.experienceId = :experienceId
+               and version.userId = :userId
+               and version.confirmedAt is not null
+               and version.deletedAt is null
+               and exists (
+                   select experience.id
+                     from CareerExperienceEntity experience
+                    where experience.id = version.experienceId
+                      and experience.userId = :userId
+                      and experience.deletedAt is null
+               )
+             order by version.versionNo desc
+            """)
+    List<CareerExperienceVersionEntity> findConfirmedVersions(
+            @Param("userId") UUID userId, @Param("experienceId") UUID experienceId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update CareerExperienceVersionEntity version

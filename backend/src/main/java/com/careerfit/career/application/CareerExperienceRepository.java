@@ -44,5 +44,8 @@ public interface CareerExperienceRepository {
 
     List<CareerExperienceVersion> findCurrentConfirmed(UserId userId);
 
+    List<CareerExperienceVersion> findConfirmedVersions(
+            UserId userId, CareerExperienceId experienceId);
+
     void delete(UserId userId, CareerExperienceId experienceId, Instant deletedAt);
 }
