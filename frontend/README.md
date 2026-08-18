@@ -36,7 +36,30 @@ pnpm test:run
 pnpm build
 ```
 
-Playwright E2E 시나리오는 M1 화면 연결이 끝나는 FE-008에서 추가합니다.
+## 실제 브라우저 E2E
+
+E2E는 Fake AI와 실제 Spring Boot·PostgreSQL을 사용하며 OpenAI API를 호출하지
+않습니다. 별도의 E2E 데이터베이스를 준비한 뒤 비밀번호를 환경변수로 전달합니다.
+
+```powershell
+$env:POSTGRES_DB = 'career_fit_e2e'
+$env:POSTGRES_USER = 'career_fit_e2e'
+$env:DB_PASSWORD = 'career-fit-e2e'
+$env:POSTGRES_PORT = '5433'
+docker compose -p career-fit-e2e up -d --wait postgres
+
+Set-Location frontend
+$env:E2E_DB_URL = 'jdbc:postgresql://127.0.0.1:5433/career_fit_e2e'
+$env:E2E_DB_USERNAME = 'career_fit_e2e'
+$env:E2E_DB_PASSWORD = 'career-fit-e2e'
+pnpm exec playwright install chromium
+pnpm e2e
+```
+
+Playwright가 Backend와 Frontend 개발 서버를 함께 기동합니다. 테스트마다 고유한
+사용자를 만들고 PDF fixture를 실행 중 생성하므로 실행 순서나 기존 계정에 의존하지
+않습니다. 실패 시 `playwright-report/`와 `test-results/`에서 screenshot과 trace를
+확인할 수 있습니다.
 
 ## 디렉터리 원칙
 
