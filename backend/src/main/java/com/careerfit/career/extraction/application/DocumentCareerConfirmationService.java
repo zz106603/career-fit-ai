@@ -10,6 +10,7 @@ import com.careerfit.career.domain.CareerExperienceVersion;
 import com.careerfit.career.domain.CareerExperienceVersionId;
 import com.careerfit.career.domain.DirectCareerContent;
 import com.careerfit.career.extraction.domain.CareerExtractionCandidate;
+import com.careerfit.career.search.application.CareerIndexJobService;
 import com.careerfit.identity.CurrentUserProvider;
 import com.careerfit.identity.UserId;
 import java.time.Clock;
@@ -25,6 +26,7 @@ public class DocumentCareerConfirmationService {
     private final CareerExtractionCandidateRepository candidateRepository;
     private final CareerExperienceRepository experienceRepository;
     private final ConfirmedCareerEvidenceRepository evidenceRepository;
+    private final CareerIndexJobService indexJobs;
     private final CurrentUserProvider currentUserProvider;
     private final Clock clock;
 
@@ -32,11 +34,13 @@ public class DocumentCareerConfirmationService {
             CareerExtractionCandidateRepository candidateRepository,
             CareerExperienceRepository experienceRepository,
             ConfirmedCareerEvidenceRepository evidenceRepository,
+            CareerIndexJobService indexJobs,
             CurrentUserProvider currentUserProvider,
             Clock clock) {
         this.candidateRepository = candidateRepository;
         this.experienceRepository = experienceRepository;
         this.evidenceRepository = evidenceRepository;
+        this.indexJobs = indexJobs;
         this.currentUserProvider = currentUserProvider;
         this.clock = clock;
     }
@@ -67,6 +71,7 @@ public class DocumentCareerConfirmationService {
             throw new IllegalStateException("DOCUMENT 경력 Evidence를 저장할 수 없습니다.");
         }
         candidateRepository.saveAll(List.of(candidate.confirm()), List.of());
+        indexJobs.enqueue(userId, version.id());
         return version;
     }
 
@@ -112,6 +117,7 @@ public class DocumentCareerConfirmationService {
         if (!experienceRepository.confirmVersion(userId, experienceId, versionId, now)) {
             throw new CareerExperienceNotFoundException();
         }
+        indexJobs.enqueue(userId, versionId);
         return versionId;
     }
 }

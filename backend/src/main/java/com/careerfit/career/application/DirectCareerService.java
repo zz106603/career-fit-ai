@@ -6,6 +6,7 @@ import com.careerfit.career.domain.CareerExperienceSourceType;
 import com.careerfit.career.domain.CareerExperienceVersion;
 import com.careerfit.career.domain.CareerExperienceVersionId;
 import com.careerfit.career.domain.DirectCareerContent;
+import com.careerfit.career.search.application.CareerIndexJobService;
 import com.careerfit.identity.CurrentUserProvider;
 import com.careerfit.identity.UserId;
 import java.time.Clock;
@@ -20,14 +21,17 @@ public class DirectCareerService {
 
     private final CareerExperienceRepository repository;
     private final CurrentUserProvider currentUserProvider;
+    private final CareerIndexJobService indexJobs;
     private final Clock clock;
 
     public DirectCareerService(
             CareerExperienceRepository repository,
             CurrentUserProvider currentUserProvider,
+            CareerIndexJobService indexJobs,
             Clock clock) {
         this.repository = repository;
         this.currentUserProvider = currentUserProvider;
+        this.indexJobs = indexJobs;
         this.clock = clock;
     }
 
@@ -78,6 +82,7 @@ public class DirectCareerService {
         if (!repository.confirmVersion(userId, experienceId, versionId, now)) {
             throw new CareerExperienceNotFoundException();
         }
+        indexJobs.enqueue(userId, versionId);
         return versionId;
     }
 
