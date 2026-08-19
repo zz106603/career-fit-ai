@@ -43,7 +43,7 @@ class DirectCareerServiceIntegrationTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void 데이터베이스를_초기화한다() {
-        jdbcClient.sql("TRUNCATE career_experience CASCADE").update();
+        jdbcClient.sql("TRUNCATE job_execution, career_experience CASCADE").update();
     }
 
     @Test
@@ -72,6 +72,8 @@ class DirectCareerServiceIntegrationTest extends PostgresIntegrationTest {
                 assertThat(version.id()).isEqualTo(draft.id());
                 assertThat(version.confirmedAt()).isEqualTo(NOW);
             });
+            assertThat(indexJobCount(draft.id().value())).isEqualTo(1);
+            assertThat(indexStatus(draft.id().value())).isEqualTo("PENDING");
         }
     }
 
@@ -167,6 +169,31 @@ class DirectCareerServiceIntegrationTest extends PostgresIntegrationTest {
                         """)
                 .param("experienceId", experienceId)
                 .query(Instant.class)
+                .single();
+    }
+
+    private int indexJobCount(java.util.UUID versionId) {
+        return jdbcClient
+                .sql("""
+                        SELECT COUNT(*)
+                        FROM job_execution
+                        WHERE job_type = 'CAREER_INDEXING'
+                          AND target_id = :versionId
+                        """)
+                .param("versionId", versionId)
+                .query(Integer.class)
+                .single();
+    }
+
+    private String indexStatus(java.util.UUID versionId) {
+        return jdbcClient
+                .sql("""
+                        SELECT index_status
+                        FROM career_search_document
+                        WHERE experience_version_id = :versionId
+                        """)
+                .param("versionId", versionId)
+                .query(String.class)
                 .single();
     }
 

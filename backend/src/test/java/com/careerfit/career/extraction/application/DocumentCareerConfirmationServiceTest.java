@@ -19,6 +19,7 @@ import com.careerfit.career.domain.DirectCareerContent;
 import com.careerfit.career.extraction.domain.CareerExtractionCandidate;
 import com.careerfit.career.extraction.domain.CareerExtractionCandidateStatus;
 import com.careerfit.career.extraction.domain.ExperienceEvidence;
+import com.careerfit.career.search.application.CareerIndexJobService;
 import com.careerfit.identity.CurrentUser;
 import com.careerfit.identity.CurrentUserProvider;
 import com.careerfit.identity.UserId;
@@ -40,12 +41,13 @@ class DocumentCareerConfirmationServiceTest {
     private final CareerExtractionCandidateRepository candidates = mock(CareerExtractionCandidateRepository.class);
     private final CareerExperienceRepository experiences = mock(CareerExperienceRepository.class);
     private final ConfirmedCareerEvidenceRepository evidences = mock(ConfirmedCareerEvidenceRepository.class);
+    private final CareerIndexJobService indexJobs = mock(CareerIndexJobService.class);
     private final CurrentUserProvider currentUserProvider = () -> new CurrentUser(USER);
     private DocumentCareerConfirmationService service;
 
     @BeforeEach
     void 서비스를_준비한다() {
-        service = new DocumentCareerConfirmationService(candidates, experiences, evidences,
+        service = new DocumentCareerConfirmationService(candidates, experiences, evidences, indexJobs,
                 currentUserProvider, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -68,6 +70,7 @@ class DocumentCareerConfirmationServiceTest {
         assertThat(saved.getValue()).singleElement()
                 .extracting(CareerExtractionCandidate::status)
                 .isEqualTo(CareerExtractionCandidateStatus.CONFIRMED);
+        verify(indexJobs).enqueue(USER, result.id());
     }
 
     @Test
@@ -114,6 +117,7 @@ class DocumentCareerConfirmationServiceTest {
 
         verify(experiences).supersedeCurrentVersion(USER, experienceId, revision.id(), NOW);
         verify(experiences).confirmVersion(USER, experienceId, revision.id(), NOW);
+        verify(indexJobs).enqueue(USER, revision.id());
     }
 
     @Test
