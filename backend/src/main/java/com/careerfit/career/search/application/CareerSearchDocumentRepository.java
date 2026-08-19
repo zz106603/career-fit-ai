@@ -14,10 +14,21 @@ public interface CareerSearchDocumentRepository {
     Optional<CareerSearchDocument> findByExperienceVersion(
             UserId userId, CareerExperienceVersionId experienceVersionId);
 
+    boolean markIndexing(
+            UserId userId,
+            CareerExperienceVersionId experienceVersionId,
+            Instant indexingStartedAt);
+
     boolean markIndexed(
             UserId userId,
             CareerExperienceVersionId experienceVersionId,
             List<Double> embedding,
             String embeddingVersion,
             Instant indexedAt);
+
+    boolean markFailed(
+            UserId userId,
+            CareerExperienceVersionId experienceVersionId,
+            String failureCode,
+            Instant failedAt);
 }

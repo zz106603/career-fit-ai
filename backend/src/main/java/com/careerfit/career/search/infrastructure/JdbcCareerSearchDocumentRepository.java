@@ -56,7 +56,8 @@ public class JdbcCareerSearchDocumentRepository implements CareerSearchDocumentR
                 .sql("""
                         SELECT search_document_id, user_id, experience_version_id,
                                searchable_text, content_hash, embedding::text AS embedding,
-                               embedding_version, index_status, created_at, indexed_at
+                               embedding_version, index_status, created_at,
+                               indexing_started_at, indexed_at, failed_at, failure_code
                         FROM career_search_document
                         WHERE user_id = :userId
                           AND experience_version_id = :versionId
@@ -65,6 +66,27 @@ public class JdbcCareerSearchDocumentRepository implements CareerSearchDocumentR
                 .param("versionId", experienceVersionId.value())
                 .query(this::mapDocument)
                 .optional();
+    }
+
+    @Override
+    public boolean markIndexing(
+            UserId userId,
+            CareerExperienceVersionId experienceVersionId,
+            Instant indexingStartedAt) {
+        int updated = jdbcClient
+                .sql("""
+                        UPDATE career_search_document
+                        SET index_status = 'INDEXING',
+                            indexing_started_at = :indexingStartedAt
+                        WHERE user_id = :userId
+                          AND experience_version_id = :versionId
+                          AND index_status = 'PENDING'
+                        """)
+                .param("indexingStartedAt", atUtc(indexingStartedAt))
+                .param("userId", userId.value())
+                .param("versionId", experienceVersionId.value())
+                .update();
+        return updated == 1;
     }
 
     @Override
@@ -86,11 +108,35 @@ public class JdbcCareerSearchDocumentRepository implements CareerSearchDocumentR
                             indexed_at = :indexedAt
                         WHERE user_id = :userId
                           AND experience_version_id = :versionId
-                          AND index_status = 'PENDING'
+                          AND index_status = 'INDEXING'
                         """)
                 .param("embedding", vectorLiteral(embedding))
                 .param("embeddingVersion", embeddingVersion)
                 .param("indexedAt", atUtc(indexedAt))
+                .param("userId", userId.value())
+                .param("versionId", experienceVersionId.value())
+                .update();
+        return updated == 1;
+    }
+
+    @Override
+    public boolean markFailed(
+            UserId userId,
+            CareerExperienceVersionId experienceVersionId,
+            String failureCode,
+            Instant failedAt) {
+        int updated = jdbcClient
+                .sql("""
+                        UPDATE career_search_document
+                        SET index_status = 'FAILED',
+                            failure_code = :failureCode,
+                            failed_at = :failedAt
+                        WHERE user_id = :userId
+                          AND experience_version_id = :versionId
+                          AND index_status = 'INDEXING'
+                        """)
+                .param("failureCode", failureCode)
+                .param("failedAt", atUtc(failedAt))
                 .param("userId", userId.value())
                 .param("versionId", experienceVersionId.value())
                 .update();
@@ -110,7 +156,10 @@ public class JdbcCareerSearchDocumentRepository implements CareerSearchDocumentR
                 resultSet.getString("embedding_version"),
                 CareerSearchIndexStatus.valueOf(resultSet.getString("index_status")),
                 instant(resultSet, "created_at"),
-                nullableInstant(resultSet, "indexed_at"));
+                nullableInstant(resultSet, "indexing_started_at"),
+                nullableInstant(resultSet, "indexed_at"),
+                nullableInstant(resultSet, "failed_at"),
+                resultSet.getString("failure_code"));
     }
 
     private List<Double> parseVector(String value) {
