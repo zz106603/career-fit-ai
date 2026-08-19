@@ -43,8 +43,59 @@ class CareerSearchDocumentTest {
                         "fake-embedding-v1",
                         CareerSearchIndexStatus.INDEXED,
                         NOW,
-                        NOW))
+                        NOW,
+                        NOW,
+                        null,
+                        null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("INDEXED 문서는 8차원 embedding이 필요합니다.");
+    }
+
+    @Test
+    @DisplayName("PENDING 문서는 INDEXING을 거쳐 INDEXED로 전이한다")
+    void PENDING_문서는_INDEXING을_거쳐_INDEXED로_전이한다() {
+        CareerSearchDocument pending = pending();
+
+        CareerSearchDocument indexing = pending.start(NOW.plusSeconds(1));
+        CareerSearchDocument indexed = indexing.succeed(
+                List.of(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8),
+                "fake-embedding-v1",
+                NOW.plusSeconds(2));
+
+        assertThat(indexing.status()).isEqualTo(CareerSearchIndexStatus.INDEXING);
+        assertThat(indexed.status()).isEqualTo(CareerSearchIndexStatus.INDEXED);
+        assertThat(indexed.indexingStartedAt()).isEqualTo(NOW.plusSeconds(1));
+        assertThat(indexed.indexedAt()).isEqualTo(NOW.plusSeconds(2));
+    }
+
+    @Test
+    @DisplayName("INDEXING 문서는 실패 코드와 시각을 기록하며 FAILED로 전이한다")
+    void INDEXING_문서는_실패_코드와_시각을_기록하며_FAILED로_전이한다() {
+        CareerSearchDocument failed = pending()
+                .start(NOW.plusSeconds(1))
+                .fail("CAREER_INDEXING_FAILED", NOW.plusSeconds(2));
+
+        assertThat(failed.status()).isEqualTo(CareerSearchIndexStatus.FAILED);
+        assertThat(failed.failureCode()).isEqualTo("CAREER_INDEXING_FAILED");
+        assertThat(failed.failedAt()).isEqualTo(NOW.plusSeconds(2));
+    }
+
+    @Test
+    @DisplayName("PENDING에서 INDEXED로 바로 전이할 수 없다")
+    void PENDING에서_INDEXED로_바로_전이할_수_없다() {
+        assertThatThrownBy(() -> pending().succeed(
+                        List.of(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8),
+                        "fake-embedding-v1",
+                        NOW.plusSeconds(1)))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    private CareerSearchDocument pending() {
+        return CareerSearchDocument.pending(
+                DevelopmentUsers.USER_A.userId(),
+                CareerExperienceVersionId.newId(),
+                "경험명: 프로젝트",
+                CONTENT_HASH,
+                NOW);
     }
 }
