@@ -38,6 +38,24 @@ interface SpringDataCareerExperienceVersionRepository
     @Query("""
             select version
               from CareerExperienceVersionEntity version
+             where version.id = :versionId
+               and version.userId = :userId
+               and version.confirmedAt is not null
+               and version.deletedAt is null
+               and exists (
+                   select experience.id
+                     from CareerExperienceEntity experience
+                    where experience.id = version.experienceId
+                      and experience.userId = :userId
+                      and experience.deletedAt is null
+               )
+            """)
+    Optional<CareerExperienceVersionEntity> findConfirmedVersion(
+            @Param("userId") UUID userId, @Param("versionId") UUID versionId);
+
+    @Query("""
+            select version
+              from CareerExperienceVersionEntity version
              where version.experienceId = :experienceId
                and version.userId = :userId
                and version.confirmedAt is not null

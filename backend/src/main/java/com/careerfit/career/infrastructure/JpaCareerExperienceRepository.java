@@ -89,6 +89,14 @@ public class JpaCareerExperienceRepository implements CareerExperienceRepository
     }
 
     @Override
+    public Optional<CareerExperienceVersion> findConfirmedVersion(
+            UserId userId, CareerExperienceVersionId versionId) {
+        return versionRepository
+                .findConfirmedVersion(userId.value(), versionId.value())
+                .map(this::toVersion);
+    }
+
+    @Override
     public Optional<CareerExperienceVersion> findCurrentConfirmedByExperience(
             UserId userId, CareerExperienceId experienceId) {
         return versionRepository
